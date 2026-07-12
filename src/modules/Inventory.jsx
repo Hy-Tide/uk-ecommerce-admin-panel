@@ -62,7 +62,7 @@ export const Inventory = ({
       type: isAddition ? 'Addition' : 'Deduction',
       qty: Math.abs(qtyNumber),
       reason: reason,
-      operator: 'Director David'
+      operator: 'Mugesh'
     };
 
     setMovements([movementEntry, ...movements]);
@@ -72,7 +72,7 @@ export const Inventory = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Inventory Level Adjusted',
         module: 'Inventory',
         detail: `Stock for ${prod.name} altered by ${qtyNumber} (${reason}). Next level: ${nextStock}`

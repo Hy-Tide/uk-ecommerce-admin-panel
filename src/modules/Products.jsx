@@ -4,6 +4,9 @@ import Button from '../components/Button';
 import Drawer from '../components/Drawer';
 import Input, { Select, Textarea, Checkbox } from '../components/Input';
 import Table from '../components/Table';
+import ListView from '../components/ListView';
+import GridView from '../components/GridView';
+import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
 import Uploader from '../components/Uploader';
 
@@ -22,6 +25,14 @@ export const Products = ({
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterBrand, setFilterBrand] = useState('All');
   const [filterStock, setFilterStock] = useState('All'); // All, In Stock, Low Stock, Out of Stock
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('view-mode-products') || 'list';
+  });
+
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-products', newView);
+  };
   
   // Drawer edit state
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -165,7 +176,7 @@ export const Products = ({
         {
           id: `log-${Date.now()}`,
           timestamp: new Date().toISOString(),
-          user: 'Director David',
+          user: 'Mugesh',
           action: 'Product Edited',
           module: 'Products',
           detail: `Modified product: ${payload.name}`
@@ -179,7 +190,7 @@ export const Products = ({
         {
           id: `log-${Date.now()}`,
           timestamp: new Date().toISOString(),
-          user: 'Director David',
+          user: 'Mugesh',
           action: 'Product Created',
           module: 'Products',
           detail: `Added new product: ${payload.name}`
@@ -198,7 +209,7 @@ export const Products = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Product Deleted',
         module: 'Products',
         detail: `Removed product: ${deleted?.name}`
@@ -222,7 +233,7 @@ export const Products = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "freshcart_products_export.csv");
+    link.setAttribute("download", "ukecommerce_products_export.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -345,9 +356,12 @@ export const Products = ({
           <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Products Catalog</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Modify store catalogue, edit description templates, weights, and categories.</p>
         </div>
-        <Button variant="primary" size="sm" icon={Plus} onClick={() => openEditDrawer(null)}>
-          Create Product
-        </Button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => openEditDrawer(null)}>
+            Create Product
+          </Button>
+        </div>
       </div>
 
       {/* Bulk actions and search toolbar */}
@@ -417,22 +431,36 @@ export const Products = ({
         )}
       </div>
 
-      {/* Main Table view */}
-      <Table
-        columns={tableColumns}
-        data={filteredProducts}
-        selectable
-        selectedKeys={selectedRows}
-        onSelectAll={(keys) => setSelectedRows(keys)}
-        onSelectRow={(key, checked) => {
-          if (checked) {
-            setSelectedRows([...selectedRows, key]);
-          } else {
-            setSelectedRows(selectedRows.filter(k => k !== key));
-          }
-        }}
-        initialRowsPerPage={10}
-      />
+      {/* Main presentation layer switcher */}
+      {viewMode === 'list' ? (
+        <ListView
+          columns={tableColumns}
+          data={filteredProducts}
+          selectable
+          selectedKeys={selectedRows}
+          onSelectAll={(keys) => setSelectedRows(keys)}
+          onSelectRow={(key, checked) => {
+            if (checked) {
+              setSelectedRows([...selectedRows, key]);
+            } else {
+              setSelectedRows(selectedRows.filter(k => k !== key));
+            }
+          }}
+          initialRowsPerPage={10}
+        />
+      ) : (
+        <GridView
+          data={filteredProducts}
+          idKey="id"
+          imageKey={item => item.images?.[0]}
+          titleKey="name"
+          subtitleKey="description"
+          statusKey="status"
+          onEdit={openEditDrawer}
+          onDelete={item => deleteProduct(item.id)}
+          initialRowsPerPage={8}
+        />
+      )}
 
       {/* Slider edit drawer */}
       <Drawer

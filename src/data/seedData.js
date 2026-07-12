@@ -19,7 +19,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1604085792782-8d92f276d7d8?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: 'https://assets.mixkit.co/videos/preview/mixkit-slicing-an-avocado-in-half-39962-large.mp4',
-    seoTitle: 'Buy Organic Hass Avocados Online | FreshCart',
+    seoTitle: 'Buy Organic Hass Avocados Online | UK E-commerce',
     seoDescription: 'Order premium organic Hass avocados online. Perfect ripeness, rich taste, packed with nutrients. Free delivery on orders above $35.',
     status: 'Published',
     regularPrice: 6.99,
@@ -56,7 +56,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Sweet Honeycrisp Apples Organic 1kg | FreshCart',
+    seoTitle: 'Sweet Honeycrisp Apples Organic 1kg | UK E-commerce',
     seoDescription: 'Crispy Washington Honeycrisp apples, sweet and tart taste. Handpicked, organic, and delivered fresh to your door.',
     status: 'Published',
     regularPrice: 5.49,
@@ -92,7 +92,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Clover Meadows Organic Whole Milk 1.89L | FreshCart',
+    seoTitle: 'Clover Meadows Organic Whole Milk 1.89L | UK E-commerce',
     seoDescription: 'Fresh pasture-raised organic milk from Clover Meadows. High in calcium and vitamin D. Delivered cold.',
     status: 'Published',
     regularPrice: 4.89,
@@ -128,7 +128,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Artisan Crusty Sourdough Loaf 500g | FreshCart',
+    seoTitle: 'Artisan Crusty Sourdough Loaf 500g | UK E-commerce',
     seoDescription: 'Traditional sourdough baked daily. Slow fermented for delicious tangy flavor and soft texture. Order now.',
     status: 'Published',
     regularPrice: 5.99,
@@ -164,7 +164,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1568651343853-21986d4e2a2c?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Blue Diamond Unsweetened Almond Milk | FreshCart',
+    seoTitle: 'Blue Diamond Unsweetened Almond Milk | UK E-commerce',
     seoDescription: 'Blue Diamond Almond Breeze Unsweetened almond milk. Low calorie, plant-based dairy alternative.',
     status: 'Draft',
     regularPrice: 3.49,
@@ -200,8 +200,8 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1586444248902-2f64eddc13df?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Certified Gluten Free Rolled Oats 1kg | FreshCart',
-    seoDescription: 'High quality whole grain rolled oats. Certified gluten free, high fiber. Shop pantry essentials on FreshCart.',
+    seoTitle: 'Certified Gluten Free Rolled Oats 1kg | UK E-commerce',
+    seoDescription: 'High quality whole grain rolled oats. Certified gluten free, high fiber. Shop pantry essentials on UK E-commerce.',
     status: 'Published',
     regularPrice: 7.99,
     salePrice: 6.49,
@@ -237,7 +237,7 @@ export const INITIAL_PRODUCTS = [
     ],
     videoUrl: '',
     seoTitle: 'Italian Cold Pressed Extra Virgin Olive Oil 500ml',
-    seoDescription: 'Premium Italian cold-pressed EVOO. Perfect flavor profile, dark glass container, rich antioxidants. Buy on FreshCart.',
+    seoDescription: 'Premium Italian cold-pressed EVOO. Perfect flavor profile, dark glass container, rich antioxidants. Buy on UK E-commerce.',
     status: 'Published',
     regularPrice: 14.99,
     salePrice: 12.99,
@@ -272,7 +272,7 @@ export const INITIAL_PRODUCTS = [
       'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&q=80&w=400'
     ],
     videoUrl: '',
-    seoTitle: 'Belgian Chocolate Chip Soft Cookies | FreshCart',
+    seoTitle: 'Belgian Chocolate Chip Soft Cookies | UK E-commerce',
     seoDescription: 'Indulge in artisanal chocolate chip cookies baked fresh daily. Rich dark chocolate chunk filling. Fast delivery.',
     status: 'Published',
     regularPrice: 6.50,
@@ -323,6 +323,10 @@ export const INITIAL_CUSTOMERS = [
     lifetimeValue: 1248.50,
     rewardsPoints: 340,
     wishlist: ['Organic Hass Avocados (Pack of 4)', 'Extra Virgin Olive Oil (500ml)'],
+    cartItems: [
+      { id: 'ci-1', name: 'Organic Whole Milk 3.8% (1.89L)', qty: 2, price: 4.29 },
+      { id: 'ci-2', name: 'Honeycrisp Apples (1kg)', qty: 1, price: 5.49 }
+    ],
     status: 'Active',
     joinedDate: '2025-02-14',
     savedAddresses: [
@@ -339,6 +343,9 @@ export const INITIAL_CUSTOMERS = [
     lifetimeValue: 620.40,
     rewardsPoints: 120,
     wishlist: ['Gluten-Free Oats (1kg)'],
+    cartItems: [
+      { id: 'ci-3', name: 'Gluten-Free Oats (1kg)', qty: 1, price: 6.99 }
+    ],
     status: 'Active',
     joinedDate: '2025-05-10',
     savedAddresses: [
@@ -354,6 +361,7 @@ export const INITIAL_CUSTOMERS = [
     lifetimeValue: 95.00,
     rewardsPoints: 45,
     wishlist: ['Gourmet Chocolate Chip Cookies', 'Freshly Baked Sourdough Bread (500g)'],
+    cartItems: [],
     status: 'Active',
     joinedDate: '2026-01-20',
     savedAddresses: [
@@ -369,6 +377,11 @@ export const INITIAL_CUSTOMERS = [
     lifetimeValue: 2450.00,
     rewardsPoints: 780,
     wishlist: [],
+    cartItems: [
+      { id: 'ci-4', name: 'Extra Virgin Olive Oil (500ml)', qty: 3, price: 12.99 },
+      { id: 'ci-5', name: 'Organic Hass Avocados (Pack of 4)', qty: 2, price: 4.99 },
+      { id: 'ci-6', name: 'Freshly Baked Sourdough Bread (500g)', qty: 1, price: 3.49 }
+    ],
     status: 'Disabled',
     joinedDate: '2024-08-01',
     savedAddresses: [
@@ -376,6 +389,7 @@ export const INITIAL_CUSTOMERS = [
     ]
   }
 ];
+
 
 export const INITIAL_ORDERS = [
   {
@@ -531,11 +545,11 @@ export const INITIAL_ROLES_MATRIX = {
 };
 
 export const INITIAL_USERS = [
-  { id: 'usr-1', name: 'Director David', email: 'david.admin@freshcart.com', role: 'Super Admin', status: 'Active', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-  { id: 'usr-2', name: 'Manager Melissa', email: 'melissa.mgr@freshcart.com', role: 'Store Manager', status: 'Active', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-  { id: 'usr-3', name: 'Support Sam', email: 'sam.care@freshcart.com', role: 'Customer Support', status: 'Active', avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-  { id: 'usr-4', name: 'Stockman Steve', email: 'steve.loader@freshcart.com', role: 'Warehouse Staff', status: 'Active', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
-  { id: 'usr-5', name: 'Marketer Mary', email: 'mary.social@freshcart.com', role: 'Marketing Team', status: 'Inactive', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }
+  { id: 'usr-1', name: 'Mugesh', email: 'Admin@demo.com', role: 'Super Admin', status: 'Active', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+  { id: 'usr-2', name: 'Manager Melissa', email: 'melissa.mgr@ukecommerce.com', role: 'Store Manager', status: 'Active', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+  { id: 'usr-3', name: 'Support Sam', email: 'sam.care@ukecommerce.com', role: 'Customer Support', status: 'Active', avatar: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+  { id: 'usr-4', name: 'Stockman Steve', email: 'steve.loader@ukecommerce.com', role: 'Warehouse Staff', status: 'Active', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' },
+  { id: 'usr-5', name: 'Marketer Mary', email: 'mary.social@ukecommerce.com', role: 'Marketing Team', status: 'Inactive', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80' }
 ];
 
 export const INITIAL_CMS_DATA = {
@@ -574,7 +588,7 @@ export const INITIAL_RECIPES = [
 
 export const INITIAL_AUDIT_LOGS = [
   { id: 'log-1', timestamp: '2026-07-01T14:32:00Z', user: 'Customer System', action: 'Order Created', module: 'Orders', detail: 'Customer Sarah Jenkins submitted order #ord-1001' },
-  { id: 'log-2', timestamp: '2026-07-01T15:05:00Z', user: 'Director David', action: 'Product Price Adjust', module: 'Products', detail: 'Regular price for Organic Whole Milk set to $4.89' },
+  { id: 'log-2', timestamp: '2026-07-01T15:05:00Z', user: 'Mugesh', action: 'Product Price Adjust', module: 'Products', detail: 'Regular price for Organic Whole Milk set to $4.89' },
   { id: 'log-3', timestamp: '2026-07-01T15:30:00Z', user: 'Melissa Manager', action: 'Stock Level Adjust', module: 'Inventory', detail: 'Increased Almond Milk stock level by +20' },
   { id: 'log-4', timestamp: '2026-07-01T16:15:00Z', user: 'System Hook', action: 'WhatsApp Triggered', module: 'WhatsApp', detail: 'Out-of-delivery notifications sent to Sarah Jenkins' }
 ];

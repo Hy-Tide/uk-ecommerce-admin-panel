@@ -5,6 +5,10 @@ import Drawer from '../components/Drawer';
 import Input, { Textarea } from '../components/Input';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
+import Card from '../components/Card';
+import ListView from '../components/ListView';
+import GridView from '../components/GridView';
+import ViewToggle from '../components/ViewToggle';
 
 export const Recipes = ({
   recipes = [],
@@ -16,6 +20,14 @@ export const Recipes = ({
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeRecipe, setActiveRecipe] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('view-mode-recipes') || 'list';
+  });
+
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-recipes', newView);
+  };
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -86,7 +98,7 @@ export const Recipes = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: activeRecipe ? 'Recipe Edited' : 'Recipe Created',
         module: 'Recipes',
         detail: `${activeRecipe ? 'Updated' : 'Created'} grocery recipe: ${payload.title}`
@@ -106,7 +118,7 @@ export const Recipes = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Recipe Deleted',
         module: 'Recipes',
         detail: `Deleted recipe: ${deleted?.title}`
@@ -168,18 +180,35 @@ export const Recipes = ({
           <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Grocery Recipe Editor</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Create meal plan recipes and map ingredients to live store catalogue items.</p>
         </div>
-        <Button variant="primary" size="sm" icon={ChefHat} onClick={() => openDrawer(null)}>
-          Add Recipe
-        </Button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <Button variant="primary" size="sm" icon={ChefHat} onClick={() => openDrawer(null)}>
+            Add Recipe
+          </Button>
+        </div>
       </div>
 
       <Card title="Published Recipe Catalog">
         <div style={{ marginTop: '12px' }}>
-          <Table
-            columns={columns}
-            data={recipes}
-            initialRowsPerPage={5}
-          />
+          {viewMode === 'list' ? (
+            <ListView
+              columns={columns}
+              data={recipes}
+              initialRowsPerPage={5}
+            />
+          ) : (
+            <GridView
+              data={recipes}
+              idKey="id"
+              imageKey="image"
+              titleKey="title"
+              subtitleKey="nutrition"
+              statusKey={item => `${item.cookingTime}`}
+              onEdit={openDrawer}
+              onDelete={item => handleDelete(item.id)}
+              initialRowsPerPage={8}
+            />
+          )}
         </div>
       </Card>
 

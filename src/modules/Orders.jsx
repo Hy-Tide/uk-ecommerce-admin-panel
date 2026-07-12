@@ -1,11 +1,63 @@
 import React, { useState } from 'react';
-import { Download, FileText, Mail, MessageSquare, Printer, RefreshCw, ShoppingCart, Truck } from 'lucide-react';
+import {
+  Calendar, CheckCircle, Clock, CreditCard, Mail,
+  MapPin, MessageSquare, Package, Printer, Search,
+  ShoppingCart, Truck, XCircle
+} from 'lucide-react';
 import Button from '../components/Button';
 import Drawer from '../components/Drawer';
-import Select from '../components/Input';
-import Table from '../components/Table';
+import Table, { ColumnsToggle } from '../components/Table';
+import ListView from '../components/ListView';
+import GridView from '../components/GridView';
+import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
 import Timeline from '../components/Timeline';
+
+// ─── Status configs ─────────────────────────────────────────────────────────
+const DELIVERY_CONFIG = {
+  'New Order':          { color: '#6366f1', bg: '#ede9fe' },
+  'Payment Verified':   { color: '#0ea5e9', bg: '#e0f2fe' },
+  'Confirmed':          { color: '#8b5cf6', bg: '#f3e8ff' },
+  'Picking':            { color: '#f59e0b', bg: '#fef3c7' },
+  'Packing':            { color: '#f59e0b', bg: '#fef3c7' },
+  'Ready for Dispatch': { color: '#10b981', bg: '#d1fae5' },
+  'Out for Delivery':   { color: '#10b981', bg: '#d1fae5' },
+  'Delivered':          { color: '#16a34a', bg: '#dcfce7' },
+  'Cancelled':          { color: '#ef4444', bg: '#fee2e2' },
+};
+
+const PAYMENT_CONFIG = {
+  'Paid':     { color: '#16a34a', bg: '#dcfce7' },
+  'Unpaid':   { color: '#ef4444', bg: '#fee2e2' },
+  'Refunded': { color: '#d97706', bg: '#fef3c7' },
+};
+
+const workflowStatuses = [
+  'New Order', 'Payment Verified', 'Confirmed',
+  'Picking', 'Packing', 'Ready for Dispatch', 'Out for Delivery', 'Delivered'
+];
+
+const StatusPill = ({ label, config }) => (
+  <span style={{
+    display: 'inline-block',
+    fontSize: '11px', fontWeight: '700',
+    padding: '3px 10px', borderRadius: '20px',
+    backgroundColor: config?.bg || 'var(--border-color)',
+    color: config?.color || 'var(--text-muted)',
+    whiteSpace: 'nowrap'
+  }}>
+    {label}
+  </span>
+);
+
+const SectionLabel = ({ children }) => (
+  <div style={{
+    fontSize: '10px', fontWeight: '800', letterSpacing: '0.08em',
+    textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '10px'
+  }}>
+    {children}
+  </div>
+);
 
 export const Orders = ({
   orders = [],
@@ -14,310 +66,264 @@ export const Orders = ({
   setAuditLogs,
   addToast
 }) => {
-  const [search, setSearch] = useState('');
-  const [filterPayment, setFilterPayment] = useState('All');
+  const [search,         setSearch]         = useState('');
+  const [filterPayment,  setFilterPayment]  = useState('All');
   const [filterDelivery, setFilterDelivery] = useState('All');
-  
-  // Drawer states
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeOrder, setActiveOrder] = useState(null);
+  const [drawerOpen,     setDrawerOpen]     = useState(false);
+  const [activeOrder,    setActiveOrder]    = useState(null);
+  const [visibleCols,    setVisibleCols]    = useState(null); // null = all visible initially
+  const [viewMode,       setViewMode]       = useState(() => {
+    return localStorage.getItem('view-mode-orders') || 'list';
+  });
 
-  // Workflow steps array
-  const workflowStatuses = [
-    'New Order',
-    'Payment Verified',
-    'Confirmed',
-    'Picking',
-    'Packing',
-    'Ready for Dispatch',
-    'Out for Delivery',
-    'Delivered'
-  ];
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-orders', newView);
+  };
 
   const handleUpdateStatus = (statusValue) => {
     if (!activeOrder) return;
-
-    // Create a new timeline step entry
-    const newStep = {
-      status: statusValue,
-      time: new Date().toISOString(),
-      desc: `Status updated manually to: ${statusValue}`
-    };
-
-    const updatedTimeline = [...activeOrder.timeline, newStep];
-    const updatedOrder = {
-      ...activeOrder,
-      deliveryStatus: statusValue,
-      timeline: updatedTimeline
-    };
-
-    // Update overall orders state
-    setOrders(orders.map(o => o.id === activeOrder.id ? updatedOrder : o));
-    setActiveOrder(updatedOrder);
-
-    setAuditLogs([
-      {
-        id: `log-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        user: 'Director David',
-        action: 'Order Status Update',
-        module: 'Orders',
-        detail: `Updated order #${activeOrder.id} status to ${statusValue}`
-      },
-      ...auditLogs
-    ]);
-
-    addToast(`Order status updated to ${statusValue}`, 'success');
+    const newStep = { status: statusValue, time: new Date().toISOString(), desc: `Status updated to: ${statusValue}` };
+    const updated = { ...activeOrder, deliveryStatus: statusValue, timeline: [...activeOrder.timeline, newStep] };
+    setOrders(orders.map(o => o.id === activeOrder.id ? updated : o));
+    setActiveOrder(updated);
+    setAuditLogs([{
+      id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
+      user: 'Mugesh', action: 'Order Status Update',
+      module: 'Orders', detail: `Updated order #${activeOrder.id} to ${statusValue}`
+    }, ...auditLogs]);
+    addToast(`Order status → ${statusValue}`, 'success');
   };
 
   const handleCancelOrder = () => {
     if (!activeOrder) return;
-    const newStep = {
-      status: 'Cancelled',
-      time: new Date().toISOString(),
-      desc: 'Cancelled manually by operator'
-    };
-    const updatedTimeline = [...activeOrder.timeline, newStep];
-    const updatedOrder = {
-      ...activeOrder,
-      deliveryStatus: 'Cancelled',
-      timeline: updatedTimeline
-    };
-    setOrders(orders.map(o => o.id === activeOrder.id ? updatedOrder : o));
-    setActiveOrder(updatedOrder);
-    addToast('Order successfully marked as Cancelled', 'warning');
+    const newStep = { status: 'Cancelled', time: new Date().toISOString(), desc: 'Cancelled manually by operator' };
+    const updated = { ...activeOrder, deliveryStatus: 'Cancelled', timeline: [...activeOrder.timeline, newStep] };
+    setOrders(orders.map(o => o.id === activeOrder.id ? updated : o));
+    setActiveOrder(updated);
+    addToast('Order cancelled', 'warning');
   };
 
   const handleRefundOrder = () => {
     if (!activeOrder) return;
-    const updatedOrder = {
-      ...activeOrder,
-      paymentStatus: 'Refunded'
-    };
-    setOrders(orders.map(o => o.id === activeOrder.id ? updatedOrder : o));
-    setActiveOrder(updatedOrder);
-    addToast('Transaction successfully refunded', 'warning');
+    const updated = { ...activeOrder, paymentStatus: 'Refunded' };
+    setOrders(orders.map(o => o.id === activeOrder.id ? updated : o));
+    setActiveOrder(updated);
+    addToast('Refund issued', 'warning');
   };
 
-  const openOrderDrawer = (order) => {
-    setActiveOrder(order);
-    setDrawerOpen(true);
-  };
-
-  // Printable Invoice Builder window trigger
   const triggerPrintWindow = () => {
     if (!activeOrder) return;
-    
-    const printContent = `
-      <html>
-        <head>
-          <title>Invoice #${activeOrder.id}</title>
-          <style>
-            body { font-family: sans-serif; padding: 40px; color: #333; }
-            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #eee; padding-bottom: 20px; }
-            .details { display: flex; justify-content: space-between; margin-top: 30px; }
-            .items { width: 100%; border-collapse: collapse; margin-top: 40px; }
-            .items th, .items td { border-bottom: 1px solid #eee; padding: 12px; text-align: left; }
-            .items th { background-color: #f9f9f9; }
-            .totals { text-align: right; margin-top: 30px; font-size: 16px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>
-              <h2>FreshCart Grocery Enterprise</h2>
-              <p>Fulfillment Center A, Zone 4</p>
-              <p>support@freshcart.com</p>
-            </div>
-            <div>
-              <h1>INVOICE</h1>
-              <p>Order Reference: <strong>${activeOrder.id}</strong></p>
-              <p>Date: ${new Date(activeOrder.date).toLocaleDateString()}</p>
-            </div>
-          </div>
-          <div class="details">
-            <div>
-              <h3>Billed To:</h3>
-              <p><strong>${activeOrder.customerName}</strong></p>
-              <p>${activeOrder.address}</p>
-            </div>
-            <div>
-              <h3>Payment & Transit:</h3>
-              <p>Method: ${activeOrder.paymentMethod}</p>
-              <p>Tracking Ref: ${activeOrder.trackingNumber || 'N/A'}</p>
-            </div>
-          </div>
-          <table class="items">
-            <thead>
-              <tr><th>Item Description</th><th>Qty</th><th>Unit Price</th><th>Subtotal</th></tr>
-            </thead>
-            <tbody>
-              ${activeOrder.items.map(item => `
-                <tr>
-                  <td>${item.name}</td>
-                  <td>${item.qty}</td>
-                  <td>$${item.price.toFixed(2)}</td>
-                  <td>$${(item.qty * item.price).toFixed(2)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="totals">
-            <p>Subtotal: $${activeOrder.subtotal.toFixed(2)}</p>
-            ${activeOrder.discount > 0 ? `<p>Discount Applied: -$${activeOrder.discount.toFixed(2)}</p>` : ''}
-            <p>Delivery Fee: $${activeOrder.deliveryFee.toFixed(2)}</p>
-            <p>VAT/Tax: $${activeOrder.tax.toFixed(2)}</p>
-            <h2>Grand Total: $${activeOrder.total.toFixed(2)}</h2>
-          </div>
-          <script>window.print();</script>
-        </body>
-      </html>
-    `;
-
-    const printWin = window.open('', '_blank');
-    printWin.document.write(printContent);
-    printWin.document.close();
+    const printContent = `<html><head><title>Invoice #${activeOrder.id}</title>
+      <style>body{font-family:sans-serif;padding:40px;color:#333}.header{display:flex;justify-content:space-between;border-bottom:2px solid #eee;padding-bottom:20px}.items{width:100%;border-collapse:collapse;margin-top:40px}.items th,.items td{border-bottom:1px solid #eee;padding:12px;text-align:left}.items th{background:#f9f9f9}.totals{text-align:right;margin-top:30px}</style>
+      </head><body>
+      <div class="header"><div><h2>UK E-commerce</h2><p>support@ukecommerce.com</p></div>
+      <div><h1>INVOICE</h1><p>Order: <strong>#${activeOrder.id}</strong></p><p>${new Date(activeOrder.date).toLocaleDateString()}</p></div></div>
+      <table class="items"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Subtotal</th></tr></thead><tbody>
+      ${activeOrder.items.map(i => `<tr><td>${i.name}</td><td>${i.qty}</td><td>$${i.price.toFixed(2)}</td><td>$${(i.qty * i.price).toFixed(2)}</td></tr>`).join('')}
+      </tbody></table>
+      <div class="totals"><p>Subtotal: $${activeOrder.subtotal.toFixed(2)}</p>${activeOrder.discount > 0 ? `<p>Discount: -$${activeOrder.discount.toFixed(2)}</p>` : ''}<p>Delivery: $${activeOrder.deliveryFee.toFixed(2)}</p><p>Tax: $${activeOrder.tax.toFixed(2)}</p><h2>Total: $${activeOrder.total.toFixed(2)}</h2></div>
+      <script>window.print();</script></body></html>`;
+    const w = window.open('', '_blank');
+    w.document.write(printContent);
+    w.document.close();
   };
 
-  const getPaymentBadge = (status) => {
-    switch (status) {
-      case 'Paid': return <Badge variant="success">Paid</Badge>;
-      case 'Refunded': return <Badge variant="warning">Refunded</Badge>;
-      case 'Unpaid':
-      default: return <Badge variant="danger">Unpaid</Badge>;
-    }
-  };
+  const openOrderDrawer = (order) => { setActiveOrder(order); setDrawerOpen(true); };
 
-  const getDeliveryBadge = (status) => {
-    if (status === 'Delivered') return <Badge variant="success">Delivered</Badge>;
-    if (status === 'Cancelled') return <Badge variant="danger">Cancelled</Badge>;
-    if (status === 'Ready for Dispatch' || status === 'Out for Delivery') return <Badge variant="accent">{status}</Badge>;
-    return <Badge variant="warning">{status}</Badge>;
-  };
-
-  const filteredOrders = orders.filter(o => {
-    const matchesSearch =
-      o.id.toLowerCase().includes(search.toLowerCase()) ||
-      o.customerName.toLowerCase().includes(search.toLowerCase());
-
-    const matchesPayment = filterPayment === 'All' || o.paymentStatus === filterPayment;
-    const matchesDelivery = filterDelivery === 'All' || o.deliveryStatus === filterDelivery;
-
-    return matchesSearch && matchesPayment && matchesDelivery;
+  const filtered = orders.filter(o => {
+    const matchSearch   = o.id.toLowerCase().includes(search.toLowerCase()) || o.customerName.toLowerCase().includes(search.toLowerCase());
+    const matchPayment  = filterPayment  === 'All' || o.paymentStatus  === filterPayment;
+    const matchDelivery = filterDelivery === 'All' || o.deliveryStatus === filterDelivery;
+    return matchSearch && matchPayment && matchDelivery;
   });
 
+  // KPI counts
+  const newCount       = orders.filter(o => o.deliveryStatus === 'New Order').length;
+  const inTransitCount = orders.filter(o => ['Out for Delivery', 'Ready for Dispatch'].includes(o.deliveryStatus)).length;
+  const deliveredCount = orders.filter(o => o.deliveryStatus === 'Delivered').length;
+  const revenue        = orders.filter(o => o.paymentStatus === 'Paid').reduce((s, o) => s + o.total, 0);
+
+  const activeStepIdx = activeOrder ? workflowStatuses.indexOf(activeOrder.deliveryStatus) : -1;
+
   const columns = [
-    { key: 'id', label: 'Order ID', render: (row) => <span style={{ fontWeight: '700' }}>#{row.id}</span> },
     {
-      key: 'date',
-      label: 'Date',
-      render: (row) => new Date(row.date).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+      key: 'id', label: 'Order ID',
+      render: row => <span style={{ fontFamily: 'monospace', fontWeight: '800', fontSize: '13px' }}>#{row.id}</span>
     },
-    { key: 'customerName', label: 'Customer' },
     {
-      key: 'total',
-      label: 'Total Value',
-      render: (row) => <span style={{ fontWeight: '600' }}>${row.total.toFixed(2)}</span>
+      key: 'date', label: 'Date',
+      render: row => (
+        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+          {new Date(row.date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+        </span>
+      )
     },
-    { key: 'paymentStatus', label: 'Payment', render: (row) => getPaymentBadge(row.paymentStatus) },
-    { key: 'deliveryStatus', label: 'Transit', render: (row) => getDeliveryBadge(row.deliveryStatus) },
     {
-      key: 'actions',
-      label: '',
-      render: (row) => (
-        <Button variant="outline" size="sm" onClick={() => openOrderDrawer(row)}>
-          Details
-        </Button>
+      key: 'customerName', label: 'Customer',
+      render: row => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0,
+            backgroundColor: '#6366f122', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '10px', fontWeight: '800', color: '#6366f1'
+          }}>
+            {row.customerName.split(' ').map(n => n[0]).join('')}
+          </div>
+          <span style={{ fontWeight: '600', fontSize: '13px' }}>{row.customerName}</span>
+        </div>
+      )
+    },
+    {
+      key: 'total', label: 'Total',
+      render: row => <span style={{ fontWeight: '700', color: 'var(--primary)' }}>${row.total.toFixed(2)}</span>
+    },
+    {
+      key: 'paymentStatus', label: 'Payment',
+      render: row => <StatusPill label={row.paymentStatus} config={PAYMENT_CONFIG[row.paymentStatus]} />
+    },
+    {
+      key: 'deliveryStatus', label: 'Delivery',
+      render: row => <StatusPill label={row.deliveryStatus} config={DELIVERY_CONFIG[row.deliveryStatus]} />
+    },
+    {
+      key: 'actions', label: '',
+      render: row => (
+        <Button variant="outline" size="sm" onClick={() => openOrderDrawer(row)}>Details</Button>
       )
     }
   ];
 
+  // Initialise visible columns once
+  const allColKeys = columns.map(c => c.key);
+  const resolvedVisible = visibleCols ?? allColKeys;
+  const handleToggleCol = (key) => {
+    const current = resolvedVisible;
+    if (current.includes(key)) {
+      if (current.length > 1) setVisibleCols(current.filter(k => k !== key));
+    } else {
+      setVisibleCols([...current, key]);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
+
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Orders Queue</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Fulfillment dispatch workflow. Access packing manifests and trigger transport logistics.</p>
-        </div>
+      <div>
+        <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0 }}>Orders Queue</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0' }}>
+          Fulfillment dispatch workflow — track, update, and manage all orders.
+        </p>
       </div>
 
-      {/* Toolbar filters */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '12px 16px',
-          flexWrap: 'wrap',
-          gap: '12px'
-        }}
-      >
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, minWidth: '240px' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
-            <span style={{ position: 'absolute', left: '12px', top: '10px', color: 'var(--text-muted)' }}><ShoppingCart size={16} /></span>
-            <input
-              type="text"
-              placeholder="Search Customer or Order ID..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px 8px 36px',
-                fontSize: '13px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-app)',
-                color: 'var(--text-primary)',
-                outline: 'none'
-              }}
-            />
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px' }}>
+        {[
+          { label: 'Total Orders',   value: orders.length,    color: '#6366f1', bg: '#ede9fe' },
+          { label: 'New Orders',     value: newCount,         color: '#0ea5e9', bg: '#e0f2fe' },
+          { label: 'In Transit',     value: inTransitCount,   color: '#10b981', bg: '#d1fae5' },
+          { label: 'Delivered',      value: deliveredCount,   color: '#16a34a', bg: '#dcfce7' },
+          { label: 'Revenue (Paid)', value: `$${revenue.toFixed(0)}`, color: '#8b5cf6', bg: '#f3e8ff' },
+        ].map(s => (
+          <div key={s.label} style={{
+            backgroundColor: 'var(--bg-card)', border: `1.5px solid ${s.color}33`,
+            borderRadius: '12px', padding: '14px 16px'
+          }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '4px' }}>{s.label}</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: s.color }}>{s.value}</div>
           </div>
+        ))}
+      </div>
 
-          <select
-            value={filterPayment}
-            onChange={(e) => setFilterPayment(e.target.value)}
-            style={{ padding: '8px', fontSize: '13px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}
-          >
-            <option value="All">All Payments</option>
-            <option value="Paid">Paid</option>
-            <option value="Unpaid">Unpaid</option>
-            <option value="Refunded">Refunded</option>
-          </select>
+      {/* Filters */}
+      <div style={{
+        display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center',
+        backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)',
+        borderRadius: '12px', padding: '12px 16px'
+      }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: '200px', maxWidth: '280px' }}>
+          <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Order ID or customer..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{
+              width: '100%', padding: '8px 12px 8px 30px', fontSize: '13px',
+              borderRadius: '8px', border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
+        </div>
 
-          <select
-            value={filterDelivery}
-            onChange={(e) => setFilterDelivery(e.target.value)}
-            style={{ padding: '8px', fontSize: '13px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}
-          >
-            <option value="All">All Transit Stages</option>
-            {workflowStatuses.map(st => <option key={st} value={st}>{st}</option>)}
-            <option value="Cancelled">Cancelled</option>
-          </select>
+        <select value={filterDelivery} onChange={e => setFilterDelivery(e.target.value)}
+          style={{ padding: '8px 12px', fontSize: '12px', fontWeight: '600', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <option value="All">All Stages</option>
+          {workflowStatuses.map(s => <option key={s} value={s}>{s}</option>)}
+          <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <select value={filterPayment} onChange={e => setFilterPayment(e.target.value)}
+          style={{ padding: '8px 12px', fontSize: '12px', fontWeight: '600', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)', cursor: 'pointer' }}>
+          <option value="All">All Payments</option>
+          <option value="Paid">Paid</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Refunded">Refunded</option>
+        </select>
+
+        {/* Columns toggle — end of filter bar */}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <ColumnsToggle columns={columns} visibleColumns={resolvedVisible} onToggle={handleToggleCol} />
         </div>
       </div>
 
-      {/* Table grid */}
-      <Table
-        columns={columns}
-        data={filteredOrders}
-        initialRowsPerPage={10}
-      />
+      {/* Main presentation switcher */}
+      {viewMode === 'list' ? (
+        <ListView
+          columns={columns}
+          data={filtered}
+          initialRowsPerPage={10}
+          externalVisibleColumns={resolvedVisible}
+          onToggleColumn={handleToggleCol}
+        />
+      ) : (
+        <GridView
+          data={filtered}
+          idKey="id"
+          titleKey={item => `Order #${item.id}`}
+          subtitleKey="customerName"
+          statusKey="deliveryStatus"
+          createdKey="date"
+          renderActions={item => (
+            <>
+              <span style={{ fontWeight: '800', color: 'var(--primary)' }}>${item.total.toFixed(2)}</span>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <span style={{
+                  backgroundColor: item.paymentStatus === 'Paid' ? 'var(--success-light)' : 'var(--secondary-light)',
+                  color: item.paymentStatus === 'Paid' ? 'var(--success)' : 'var(--secondary)',
+                  padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700'
+                }}>{item.paymentStatus}</span>
+                <Button variant="outline" size="sm" onClick={() => openOrderDrawer(item)}>Details</Button>
+              </div>
+            </>
+          )}
+          initialRowsPerPage={8}
+        />
+      )}
 
-      {/* Details drawer */}
+      {/* ── Order Detail Drawer ── */}
       <Drawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={activeOrder ? `Order details: #${activeOrder.id}` : ''}
+        title=""
         size="lg"
         footer={
           activeOrder && activeOrder.deliveryStatus !== 'Cancelled' ? (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <Button variant="danger" size="sm" onClick={handleCancelOrder}>Cancel Order</Button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <Button variant="danger"  size="sm" onClick={handleCancelOrder}>Cancel Order</Button>
               {activeOrder.paymentStatus === 'Paid' && (
                 <Button variant="outline" size="sm" onClick={handleRefundOrder}>Issue Refund</Button>
               )}
@@ -326,112 +332,148 @@ export const Orders = ({
           ) : null
         }
       >
-        {activeOrder && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            
-            {/* Customer Details Block */}
-            <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Customer profile</span>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
-                <div>
-                  <h4 style={{ fontSize: '15px' }}>{activeOrder.customerName}</h4>
-                  <p style={{ fontSize: '13px' }}>{activeOrder.customerEmail}</p>
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Button variant="outline" size="sm" icon={Mail} onClick={() => addToast(`Mail template notification sent to ${activeOrder.customerEmail}`, 'success')} />
-                  <Button variant="outline" size="sm" icon={MessageSquare} onClick={() => addToast(`WhatsApp alert template triggered for ${activeOrder.customerName}`, 'success')} />
-                </div>
-              </div>
-              <p style={{ fontSize: '13px', marginTop: '12px' }}><strong>Delivery Destination:</strong> {activeOrder.address}</p>
-            </div>
+        {activeOrder && (() => {
+          const dCfg = DELIVERY_CONFIG[activeOrder.deliveryStatus] || {};
+          const pCfg = PAYMENT_CONFIG[activeOrder.paymentStatus]   || {};
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-            {/* Workflow status adjust */}
-            {activeOrder.deliveryStatus !== 'Cancelled' && (
-              <div style={{ backgroundColor: 'var(--bg-app)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>Transit Stage Workflow Action</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {workflowStatuses.map((st) => {
-                    const isCompleted = workflowStatuses.indexOf(activeOrder.deliveryStatus) >= workflowStatuses.indexOf(st);
-                    return (
-                      <Button
-                        key={st}
-                        variant={activeOrder.deliveryStatus === st ? 'primary' : 'outline'}
-                        size="sm"
-                        onClick={() => handleUpdateStatus(st)}
-                        style={{
-                          fontSize: '11px',
-                          padding: '4px 8px',
-                          borderColor: isCompleted ? 'var(--primary)' : 'var(--border-color)'
-                        }}
-                      >
-                        {st}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Workflow progression timeline */}
-            <div>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Fulfillment trail</span>
-              <Timeline steps={activeOrder.timeline} />
-            </div>
-
-            {/* Ordered Items Grid */}
-            <div>
-              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '12px' }}>Cart details</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-                {activeOrder.items.map((item, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '12px 16px',
-                      borderBottom: idx === activeOrder.items.length - 1 ? 'none' : '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-card)'
-                    }}
-                  >
-                    <div>
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{item.name}</span>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Quantity: {item.qty} x ${item.price.toFixed(2)}</p>
+              {/* Hero */}
+              <div style={{
+                background: `linear-gradient(135deg, ${dCfg.color || '#6366f1'} 0%, ${dCfg.color || '#6366f1'}cc 100%)`,
+                borderRadius: '16px', padding: '20px 24px', position: 'relative', overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Order Reference</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '22px', fontWeight: '900', color: '#fff', letterSpacing: '1px' }}>#{activeOrder.id}</div>
+                    <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', marginTop: '4px' }}>
+                      {new Date(activeOrder.date).toLocaleDateString()} · {activeOrder.items.length} items
                     </div>
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>${(item.qty * item.price).toFixed(2)}</span>
                   </div>
-                ))}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '28px', fontWeight: '900', color: '#fff' }}>${activeOrder.total.toFixed(2)}</div>
+                    <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: pCfg.bg, color: pCfg.color, marginTop: '4px' }}>
+                      {activeOrder.paymentStatus}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Valuation bill metrics */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <span>Subtotal</span>
-                <span>${activeOrder.subtotal.toFixed(2)}</span>
+              {/* Customer */}
+              <div>
+                <SectionLabel>Customer</SectionLabel>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, backgroundColor: '#6366f122', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '800', color: '#6366f1' }}>
+                      {activeOrder.customerName.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: '700' }}>{activeOrder.customerName}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{activeOrder.customerEmail}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => addToast(`Email sent to ${activeOrder.customerEmail}`, 'success')} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}><Mail size={14} /></button>
+                    <button onClick={() => addToast(`WhatsApp triggered for ${activeOrder.customerName}`, 'success')} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}><MessageSquare size={14} /></button>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '8px', padding: '10px 14px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '10px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <MapPin size={13} style={{ color: 'var(--primary)', marginTop: '1px', flexShrink: 0 }} />
+                  {activeOrder.address}
+                </div>
               </div>
-              {activeOrder.discount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--danger)' }}>
-                  <span>Discount code applied</span>
-                  <span>-${activeOrder.discount.toFixed(2)}</span>
+
+              {/* Workflow */}
+              {activeOrder.deliveryStatus !== 'Cancelled' && (
+                <div>
+                  <SectionLabel>Update Transit Stage</SectionLabel>
+                  <div style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {workflowStatuses.map((st, idx) => {
+                        const isActive    = activeOrder.deliveryStatus === st;
+                        const isCompleted = activeStepIdx > idx;
+                        const cfg         = DELIVERY_CONFIG[st] || {};
+                        return (
+                          <button key={st} onClick={() => handleUpdateStatus(st)} style={{
+                            padding: '5px 12px', fontSize: '11px', fontWeight: '700',
+                            borderRadius: '20px', border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+                            backgroundColor: isActive ? (cfg.color || 'var(--primary)') : isCompleted ? `${cfg.color || 'var(--primary)'}22` : 'var(--border-color)',
+                            color: isActive ? '#fff' : isCompleted ? (cfg.color || 'var(--primary)') : 'var(--text-muted)'
+                          }}>
+                            {isCompleted && !isActive ? '✓ ' : ''}{st}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <span>Delivery fees</span>
-                <span>${activeOrder.deliveryFee.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                <span>Taxes & VAT</span>
-                <span>${activeOrder.tax.toFixed(2)}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '700', borderTop: '1px dashed var(--border-color)', paddingTop: '8px', color: 'var(--text-primary)' }}>
-                <span>Grand Total</span>
-                <span>${activeOrder.total.toFixed(2)}</span>
-              </div>
-            </div>
 
-          </div>
-        )}
+              {/* Timeline */}
+              <div>
+                <SectionLabel>Fulfillment Trail</SectionLabel>
+                <Timeline steps={activeOrder.timeline} />
+              </div>
+
+              {/* Items */}
+              <div>
+                <SectionLabel>Order Items</SectionLabel>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {activeOrder.items.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ width: '26px', height: '26px', borderRadius: '7px', flexShrink: 0, backgroundColor: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800' }}>{idx + 1}</div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600' }}>{item.name}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{item.qty} × ${item.price.toFixed(2)}</div>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '800', color: 'var(--primary)' }}>${(item.qty * item.price).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Totals */}
+              <div style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { label: 'Subtotal',      value: `$${activeOrder.subtotal.toFixed(2)}` },
+                  ...(activeOrder.discount > 0 ? [{ label: 'Discount', value: `-$${activeOrder.discount.toFixed(2)}`, danger: true }] : []),
+                  { label: 'Delivery fee',  value: `$${activeOrder.deliveryFee.toFixed(2)}` },
+                  { label: 'Tax / VAT',     value: `$${activeOrder.tax.toFixed(2)}` },
+                ].map(r => (
+                  <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>{r.label}</span>
+                    <span style={{ color: r.danger ? '#ef4444' : 'var(--text-primary)', fontWeight: '600' }}>{r.value}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '17px', fontWeight: '900', borderTop: '2px dashed var(--border-color)', paddingTop: '10px', marginTop: '4px' }}>
+                  <span>Grand Total</span>
+                  <span style={{ color: 'var(--primary)' }}>${activeOrder.total.toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Payment meta */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', fontSize: '12px' }}>
+                  <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>Payment Method</div>
+                  <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <CreditCard size={13} style={{ color: 'var(--primary)' }} /> {activeOrder.paymentMethod}
+                  </div>
+                </div>
+                {activeOrder.trackingNumber && (
+                  <div style={{ flex: 1, backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px', fontSize: '12px' }}>
+                    <div style={{ color: 'var(--text-muted)', marginBottom: '4px' }}>Tracking Number</div>
+                    <div style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary)' }}>{activeOrder.trackingNumber}</div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          );
+        })()}
       </Drawer>
 
     </div>

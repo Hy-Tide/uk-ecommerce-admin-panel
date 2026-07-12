@@ -15,7 +15,7 @@ export const CMS = ({
   const [heroSubtitle, setHeroSubtitle] = useState(cmsData.homepage?.heroSubtitle || 'Handpicked organic items direct from local farms.');
   const [bannerUrl, setBannerUrl] = useState(cmsData.homepage?.bannerUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800');
   const [announcementBar, setAnnouncementBar] = useState(cmsData.homepage?.announcementBar || 'Special Deals! Code ORGANIC20 for 20% off fresh produce!');
-  
+
   // Page SEO tags
   const [pageSEO, setPageSEO] = useState({
     homepage: { title: 'FreshCart Organic - Home Delivery', desc: 'Order organic farm fresh groceries.' },
@@ -42,7 +42,7 @@ export const CMS = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Homepage Layout Published',
         module: 'CMS',
         detail: 'Published homepage updates: Hero widgets & announcements'
@@ -58,7 +58,7 @@ export const CMS = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -68,10 +68,10 @@ export const CMS = ({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', alignItems: 'flex-start' }}>
-        
+
         {/* Editor Settings Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+
           <Card title="Homepage Layout Configuration" actions={<Button variant="primary" size="sm" icon={Save} onClick={handleSaveCMS}>Publish Layout</Button>}>
             <form style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '12px' }}>
               <Input label="Header Announcement Bar" value={announcementBar} onChange={(e) => setAnnouncementBar(e.target.value)} />

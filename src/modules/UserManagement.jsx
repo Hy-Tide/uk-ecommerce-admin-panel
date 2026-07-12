@@ -5,6 +5,9 @@ import Card from '../components/Card';
 import Modal from '../components/Modal';
 import Input, { Select } from '../components/Input';
 import Table from '../components/Table';
+import ListView from '../components/ListView';
+import GridView from '../components/GridView';
+import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
 
 export const UserManagement = ({
@@ -19,7 +22,15 @@ export const UserManagement = ({
   const [inviteModal, setInviteModal] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('Store Manager');
+  const [inviteRole, setInviteRole] = useState('Super Admin');
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('view-mode-users') || 'list';
+  });
+
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-users', newView);
+  };
 
   // List of all accessible modules
   const modulesKeys = [
@@ -65,7 +76,7 @@ export const UserManagement = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'User Invited',
         module: 'User Management',
         detail: `Invited new team member: ${inviteName} (${inviteRole})`
@@ -93,7 +104,7 @@ export const UserManagement = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Permission Rule Altered',
         module: 'User Management',
         detail: `Toggled module permission: ${modKey} for role ${roleName}`
@@ -153,19 +164,44 @@ export const UserManagement = ({
           <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>User Roles & Access Control (RBAC)</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Invite storefront operators, adjust role categories, and enforce module permission matrix filters.</p>
         </div>
-        <Button variant="primary" size="sm" icon={UserPlus} onClick={() => setInviteModal(true)}>
-          Invite Team User
-        </Button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <Button variant="primary" size="sm" icon={UserPlus} onClick={() => setInviteModal(true)}>
+            Invite Team User
+          </Button>
+        </div>
       </div>
 
       {/* Staff directory */}
-      <Card title="FreshCart Operating Staff Directory" icon={Users}>
+      <Card title="UK E-commerce Operating Staff Directory" icon={Users}>
         <div style={{ marginTop: '12px' }}>
-          <Table
-            columns={userCols}
-            data={users}
-            initialRowsPerPage={5}
-          />
+          {viewMode === 'list' ? (
+            <ListView
+              columns={userCols}
+              data={users}
+              initialRowsPerPage={5}
+            />
+          ) : (
+            <GridView
+              data={users}
+              idKey="id"
+              imageKey="avatar"
+              titleKey="name"
+              subtitleKey="email"
+              statusKey="role"
+              renderActions={item => (
+                <>
+                  <span style={{
+                    backgroundColor: item.status === 'Active' ? 'var(--success-light)' : 'var(--secondary-light)',
+                    color: item.status === 'Active' ? 'var(--success)' : 'var(--secondary)',
+                    padding: '3px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700'
+                  }}>{item.status}</span>
+                  <Button variant="ghost" size="sm" onClick={() => toggleUserStatus(item.id)} style={{ color: 'var(--danger)' }}>Change Status</Button>
+                </>
+              )}
+              initialRowsPerPage={8}
+            />
+          )}
         </div>
       </Card>
 
@@ -231,7 +267,7 @@ export const UserManagement = ({
       >
         <form onSubmit={handleInviteSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <Input label="Full Name" value={inviteName} onChange={(e) => setInviteName(e.target.value)} placeholder="e.g. Rachel Adams" />
-          <Input label="Business Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="rachel@freshcart.com" />
+          <Input label="Business Email" type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="rachel@ukecommerce.com" />
           <Select label="Role Assignment" value={inviteRole} onChange={(e) => setInviteRole(e.target.value)} options={Object.keys(rolePermissions)} />
         </form>
       </Modal>

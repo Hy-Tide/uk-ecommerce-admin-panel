@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { INITIAL_USERS } from '../data/seedData';
 
 export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
-  const [email, setEmail] = useState('david.admin@freshcart.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('Admin@demo.com');
+  const [password, setPassword] = useState('Admin@123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -38,6 +38,11 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
 
     if (!password) {
       setPasswordError('Please enter your password.');
+      return;
+    }
+
+    if (password !== 'Admin@123') {
+      setPasswordError('Incorrect password. Please try again.');
       return;
     }
 
@@ -132,61 +137,27 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
             gap: '24px'
           }}
         >
-          {/* Brand Logo Header */}
-          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', minHeight: '144px', justifyContent: 'center' }}>
-            <AnimatePresence mode="wait">
-              {matchedUser && matchedUser.status === 'Active' ? (
-                <motion.img
-                  key="avatar"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  src={matchedUser.avatar}
-                  alt={matchedUser.name}
-                  style={{
-                    width: '64px',
-                    height: '64px',
-                    borderRadius: '50%',
-                    border: '3px solid var(--primary)',
-                    objectFit: 'cover',
-                    boxShadow: '0 8px 16px rgba(16, 185, 129, 0.25)',
-                    marginBottom: '8px'
-                  }}
-                />
-              ) : (
-                <motion.div
-                  key="logo"
-                  initial={{ scale: 0.5, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.5, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                  style={{
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '12px',
-                    backgroundColor: 'var(--primary-light)',
-                    color: 'var(--primary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '24px',
-                    marginBottom: '8px'
-                  }}
-                >
-                  FC
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.03em', margin: 0 }}>
-              {matchedUser && matchedUser.status === 'Active' ? `Hello, ${matchedUser.name.split(' ')[0]}!` : 'Welcome back'}
-            </h2>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: 0 }}>
-              {matchedUser && matchedUser.status === 'Active' 
-                ? 'Enter your password to access the panel.' 
-                : 'Enter your credentials to access the FreshCart Admin Panel.'}
-            </p>
+          {/* Company Logo — centered */}
+          <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+            {/* Logo mark */}
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '20px',
+              background: 'linear-gradient(135deg, var(--primary) 0%, #10b981 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 12px 32px rgba(5,150,105,0.35)',
+              flexShrink: 0
+            }}>
+              <span style={{ fontSize: '28px', fontWeight: '900', color: '#fff', letterSpacing: '-1px', fontFamily: 'var(--font-sans)' }}>FC</span>
+            </div>
+            {/* Brand name */}
+            <div>
+              <h1 style={{ fontSize: '26px', fontWeight: '900', letterSpacing: '-0.04em', margin: 0, color: 'var(--text-primary)' }}>
+                UK E-commerce
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 0', fontWeight: '500' }}>
+                Admin Panel — Sign in to continue
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleLoginSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -194,7 +165,7 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
               label="Email address"
               type="email"
               icon={Mail}
-              placeholder="name@freshcart.com"
+              placeholder="name@ukecommerce.com"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -255,14 +226,6 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
             </Button>
           </form>
 
-          <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div>Demo Accounts (Password: <span style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>password123</span>)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontFamily: 'monospace', fontWeight: 'bold' }}>
-              <div>david.admin@freshcart.com</div>
-              <div>melissa.mgr@freshcart.com</div>
-              <div>sam.care@freshcart.com</div>
-            </div>
-          </div>
         </motion.div>
       </div>
 

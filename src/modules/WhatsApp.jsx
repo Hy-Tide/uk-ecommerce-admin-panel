@@ -46,7 +46,7 @@ export const WhatsApp = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'WhatsApp Campaign Launched',
         module: 'WhatsApp',
         detail: `Queued broadcast campaign to ${audience} using template: ${template}`

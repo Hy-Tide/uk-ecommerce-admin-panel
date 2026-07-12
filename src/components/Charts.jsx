@@ -43,15 +43,21 @@ const CustomChartTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+const isAnimationEnabled = () => {
+  if (typeof window === 'undefined') return true;
+  return sessionStorage.getItem('dashboard-has-animated') !== 'true';
+};
+
 // Line Chart
 export const LineChartWidget = ({ data = [], xKey = 'name', yKey = 'value', height = 300 }) => {
+  const activeAnim = isAnimationEnabled();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <XAxis dataKey={xKey} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
         <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
         <Tooltip content={<CustomChartTooltip />} />
-        <Line type="monotone" dataKey={yKey} name={yKey.toUpperCase()} stroke="var(--primary)" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3 }} />
+        <Line isAnimationActive={activeAnim} type="monotone" dataKey={yKey} name={yKey.toUpperCase()} stroke="var(--primary)" strokeWidth={2.5} activeDot={{ r: 6 }} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -59,13 +65,14 @@ export const LineChartWidget = ({ data = [], xKey = 'name', yKey = 'value', heig
 
 // Bar Chart
 export const BarChartWidget = ({ data = [], xKey = 'name', yKey = 'value', height = 300 }) => {
+  const activeAnim = isAnimationEnabled();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
         <XAxis dataKey={xKey} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
         <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
         <Tooltip content={<CustomChartTooltip />} />
-        <Bar dataKey={yKey} name={yKey.toUpperCase()} fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={40} />
+        <Bar isAnimationActive={activeAnim} dataKey={yKey} name={yKey.toUpperCase()} fill="var(--primary)" radius={[4, 4, 0, 0]} maxBarSize={40} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -73,6 +80,7 @@ export const BarChartWidget = ({ data = [], xKey = 'name', yKey = 'value', heigh
 
 // Area Chart
 export const AreaChartWidget = ({ data = [], xKey = 'name', yKeys = ['value'], height = 300 }) => {
+  const activeAnim = isAnimationEnabled();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -87,6 +95,7 @@ export const AreaChartWidget = ({ data = [], xKey = 'name', yKeys = ['value'], h
         <Tooltip content={<CustomChartTooltip />} />
         {yKeys.map((key, i) => (
           <Area
+            isAnimationActive={activeAnim}
             key={key}
             type="monotone"
             dataKey={key}
@@ -105,11 +114,13 @@ export const AreaChartWidget = ({ data = [], xKey = 'name', yKeys = ['value'], h
 // Pie / Donut Chart
 export const DonutChartWidget = ({ data = [], innerRadius = 60, outerRadius = 80, height = 300 }) => {
   const COLORS = ['#10b981', '#f97316', '#ef4444', '#f59e0b', '#64748b'];
+  const activeAnim = isAnimationEnabled();
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
         <Pie
+          isAnimationActive={activeAnim}
           data={data}
           cx="50%"
           cy="50%"

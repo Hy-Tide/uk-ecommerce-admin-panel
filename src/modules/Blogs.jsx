@@ -5,6 +5,10 @@ import Drawer from '../components/Drawer';
 import Input, { Select, Textarea } from '../components/Input';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
+import Card from '../components/Card';
+import ViewToggle from '../components/ViewToggle';
+import ListView from '../components/ListView';
+import GridView from '../components/GridView';
 
 export const Blogs = ({
   blogs = [],
@@ -15,6 +19,14 @@ export const Blogs = ({
 }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeBlog, setActiveBlog] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('view-mode-blogs') || 'list';
+  });
+
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-blogs', newView);
+  };
 
   // Editor Form fields
   const [title, setTitle] = useState('');
@@ -64,7 +76,7 @@ export const Blogs = ({
     } else {
       setTitle('');
       setSlug('');
-      setAuthor('David Admin');
+      setAuthor('Mugesh');
       setCategory('Health & Nutrition');
       setFeaturedImage('https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400');
       setContent('');
@@ -108,7 +120,7 @@ export const Blogs = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: activeBlog ? 'Blog Article Edited' : 'Blog Article Created',
         module: 'Blogs',
         detail: `${activeBlog ? 'Updated' : 'Created'} article: ${payload.title}`
@@ -128,7 +140,7 @@ export const Blogs = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Blog Deleted',
         module: 'Blogs',
         detail: `Removed blog post: ${deleted?.title}`
@@ -183,19 +195,37 @@ export const Blogs = ({
           <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Blog Articles Publisher</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Compose customer tips, nutrition logs, farm highlights, and promotional blog sheets.</p>
         </div>
-        <Button variant="primary" size="sm" icon={Plus} onClick={() => openBlogDrawer(null)}>
-          Compose Article
-        </Button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => openBlogDrawer(null)}>
+            Compose Article
+          </Button>
+        </div>
       </div>
 
       {/* Main catalog */}
       <Card title="Composed Blog Catalog">
         <div style={{ marginTop: '12px' }}>
-          <Table
-            columns={columns}
-            data={blogs}
-            initialRowsPerPage={5}
-          />
+          {viewMode === 'list' ? (
+            <ListView
+              columns={columns}
+              data={blogs}
+              initialRowsPerPage={5}
+            />
+          ) : (
+            <GridView
+              data={blogs}
+              idKey="id"
+              imageKey="featuredImage"
+              titleKey="title"
+              subtitleKey="content"
+              statusKey="status"
+              createdKey="publishedDate"
+              onEdit={openBlogDrawer}
+              onDelete={item => handleDelete(item.id)}
+              initialRowsPerPage={8}
+            />
+          )}
         </div>
       </Card>
 

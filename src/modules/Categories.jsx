@@ -5,6 +5,8 @@ import Modal from '../components/Modal';
 import Input, { Select, Textarea } from '../components/Input';
 import Badge from '../components/Badge';
 import Uploader from '../components/Uploader';
+import GridView from '../components/GridView';
+import ViewToggle from '../components/ViewToggle';
 
 export const Categories = ({
   categories = [],
@@ -16,6 +18,14 @@ export const Categories = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [draggingId, setDraggingId] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('view-mode-categories') || 'list';
+  });
+
+  const handleViewChange = (newView) => {
+    setViewMode(newView);
+    localStorage.setItem('view-mode-categories', newView);
+  };
   
   // Form fields
   const [name, setName] = useState('');
@@ -78,7 +88,7 @@ export const Categories = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: editingCategory ? 'Category Edited' : 'Category Created',
         module: 'Categories',
         detail: `${editingCategory ? 'Modified' : 'Added'} category: ${payload.name}`
@@ -98,7 +108,7 @@ export const Categories = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Category Deleted',
         module: 'Categories',
         detail: `Deleted category: ${toDelete?.name}`
@@ -156,7 +166,7 @@ export const Categories = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Category Hierarchy Reordered',
         module: 'Categories',
         detail: `Moved category '${draggingItem.name}' via drag & drop`
@@ -176,136 +186,154 @@ export const Categories = ({
           <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Category Hierarchy</h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Manage department grouping, parent trees, and visual index display.</p>
         </div>
-        <Button variant="primary" size="sm" icon={FolderPlus} onClick={() => openModal(null)}>
-          Add Category
-        </Button>
-      </div>
-
-      {/* Categories Visual List Sheet */}
-      <div
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-sm)',
-          padding: '24px'
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {roots.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No categories registered. Click Add Category to start.</div>
-          ) : (
-            roots.map((root) => {
-              // Find children subcategories
-              const subcats = categories.filter(c => c.parent === root.name);
-
-              return (
-                <div
-                  key={root.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, root.id)}
-                  onDragEnd={handleDragEnd}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, root.id, 'root')}
-                  style={{
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: draggingId === root.id ? 'var(--bg-card-alt)' : 'var(--bg-app)',
-                    padding: '16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '12px',
-                    opacity: draggingId === root.id ? 0.6 : 1,
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {/* Root Category Row */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <GripVertical size={16} style={{ color: 'var(--text-muted)', cursor: 'grab' }} />
-                      {root.icon && (root.icon.startsWith('http') || root.icon.startsWith('/')) ? (
-                        <img src={root.icon} alt={root.name} style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
-                      ) : (
-                        <Folder size={18} style={{ color: 'var(--primary)' }} />
-                      )}
-                      <div>
-                        <span style={{ fontWeight: '700', fontSize: '15px' }}>{root.name}</span>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '12px' }}>
-                          Display order: {root.displayOrder}
-                        </span>
-                      </div>
-                      <Badge variant={root.status === 'Active' ? 'success' : 'secondary'}>{root.status}</Badge>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <Button variant="ghost" size="sm" onClick={() => openModal(root)} style={{ padding: '4px' }}>
-                        <Edit size={14} />
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(root.id)} style={{ padding: '4px', color: 'var(--danger)' }}>
-                        <Trash2 size={14} />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Render Subcategories list */}
-                  {subcats.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '28px', borderLeft: '2px dashed var(--border-color)' }}>
-                      {subcats.map((sub) => (
-                        <div
-                          key={sub.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, sub.id)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={handleDragOver}
-                          onDrop={(e) => handleDrop(e, sub.id, 'sub', root.name)}
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            backgroundColor: draggingId === sub.id ? 'var(--bg-card-alt)' : 'var(--bg-card)',
-                            border: '1px solid var(--border-color)',
-                            padding: '10px 12px',
-                            borderRadius: '8px',
-                            opacity: draggingId === sub.id ? 0.6 : 1,
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <GripVertical size={14} style={{ color: 'var(--text-muted)', cursor: 'grab' }} />
-                            {sub.icon && (sub.icon.startsWith('http') || sub.icon.startsWith('/')) ? (
-                              <img src={sub.icon} alt={sub.name} style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
-                            ) : (
-                              <Folder size={14} style={{ color: 'var(--accent)' }} />
-                            )}
-                            <span style={{ fontSize: '13px', fontWeight: '500' }}>{sub.name}</span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Order: {sub.displayOrder}</span>
-                            <Badge variant={sub.status === 'Active' ? 'success' : 'secondary'} style={{ fontSize: '9px', padding: '2px 6px' }}>{sub.status}</Badge>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '2px' }}>
-                            <Button variant="ghost" size="sm" onClick={() => openModal(sub)} style={{ padding: '4px' }}>
-                              <Edit size={12} />
-                            </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDelete(sub.id)} style={{ padding: '4px', color: 'var(--danger)' }}>
-                              <Trash2 size={12} />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {subcats.length === 0 && (
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '28px' }}>
-                      No subcategories mapped under this block.
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
+          <Button variant="primary" size="sm" icon={FolderPlus} onClick={() => openModal(null)}>
+            Add Category
+          </Button>
         </div>
       </div>
+
+      {/* Categories Switcher */}
+      {viewMode === 'list' ? (
+        <div
+          style={{
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-lg)',
+            boxShadow: 'var(--shadow-sm)',
+            padding: '24px'
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {roots.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>No categories registered. Click Add Category to start.</div>
+            ) : (
+              roots.map((root) => {
+                // Find children subcategories
+                const subcats = categories.filter(c => c.parent === root.name);
+
+                return (
+                  <div
+                    key={root.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, root.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, root.id, 'root')}
+                    style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: draggingId === root.id ? 'var(--bg-card-alt)' : 'var(--bg-app)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      opacity: draggingId === root.id ? 0.6 : 1,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {/* Root Category Row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <GripVertical size={16} style={{ color: 'var(--text-muted)', cursor: 'grab' }} />
+                        {root.icon && (root.icon.startsWith('http') || root.icon.startsWith('/')) ? (
+                          <img src={root.icon} alt={root.name} style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                        ) : (
+                          <Folder size={18} style={{ color: 'var(--primary)' }} />
+                        )}
+                        <div>
+                          <span style={{ fontWeight: '700', fontSize: '15px' }}>{root.name}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '12px' }}>
+                            Display order: {root.displayOrder}
+                          </span>
+                        </div>
+                        <Badge variant={root.status === 'Active' ? 'success' : 'secondary'}>{root.status}</Badge>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <Button variant="ghost" size="sm" onClick={() => openModal(root)} style={{ padding: '4px' }}>
+                          <Edit size={14} />
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => handleDelete(root.id)} style={{ padding: '4px', color: 'var(--danger)' }}>
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Render Subcategories list */}
+                    {subcats.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '28px', borderLeft: '2px dashed var(--border-color)' }}>
+                        {subcats.map((sub) => (
+                          <div
+                            key={sub.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, sub.id)}
+                            onDragEnd={handleDragEnd}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, sub.id, 'sub', root.name)}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              backgroundColor: draggingId === sub.id ? 'var(--bg-card-alt)' : 'var(--bg-card)',
+                              border: '1px solid var(--border-color)',
+                              padding: '10px 12px',
+                              borderRadius: '8px',
+                              opacity: draggingId === sub.id ? 0.6 : 1,
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <GripVertical size={14} style={{ color: 'var(--text-muted)', cursor: 'grab' }} />
+                              {sub.icon && (sub.icon.startsWith('http') || sub.icon.startsWith('/')) ? (
+                                <img src={sub.icon} alt={sub.name} style={{ width: '24px', height: '24px', borderRadius: '4px', objectFit: 'cover' }} />
+                              ) : (
+                                <Folder size={14} style={{ color: 'var(--accent)' }} />
+                              )}
+                              <span style={{ fontSize: '13px', fontWeight: '500' }}>{sub.name}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Order: {sub.displayOrder}</span>
+                              <Badge variant={sub.status === 'Active' ? 'success' : 'secondary'} style={{ fontSize: '9px', padding: '2px 6px' }}>{sub.status}</Badge>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '2px' }}>
+                              <Button variant="ghost" size="sm" onClick={() => openModal(sub)} style={{ padding: '4px' }}>
+                                <Edit size={12} />
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => handleDelete(sub.id)} style={{ padding: '4px', color: 'var(--danger)' }}>
+                                <Trash2 size={12} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {subcats.length === 0 && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '28px' }}>
+                        No subcategories mapped under this block.
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      ) : (
+        <GridView
+          data={categories}
+          idKey="id"
+          imageKey="icon"
+          titleKey="name"
+          subtitleKey={item => item.parent ? `Subcategory of ${item.parent}` : 'Root Department'}
+          statusKey="status"
+          onEdit={openModal}
+          onDelete={item => handleDelete(item.id)}
+          initialRowsPerPage={8}
+        />
+      )}
+
 
       {/* Edit/Create Category dialog */}
       <Modal

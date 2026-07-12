@@ -14,8 +14,8 @@ export const Settings = ({
   auditLogs = [],
   setAuditLogs
 }) => {
-  const [storeName, setStoreName] = useState('FreshCart Organic Enterprise');
-  const [storeEmail, setStoreEmail] = useState('operations@freshcart.com');
+  const [storeName, setStoreName] = useState('UK E-commerce Enterprise');
+  const [storeEmail, setStoreEmail] = useState('operations@ukecommerce.com');
   const [currency, setCurrency] = useState('USD ($)');
   const [timezone, setTimezone] = useState('GMT-5 (EST)');
   
@@ -32,7 +32,7 @@ export const Settings = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Director David',
+        user: 'Mugesh',
         action: 'Store Settings Updated',
         module: 'Settings',
         detail: `Modified general parameters for store: ${storeName}`
@@ -61,7 +61,7 @@ export const Settings = ({
     
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', jsonString);
-    downloadAnchor.setAttribute('download', `freshcart_db_backup_${new Date().toISOString().split('T')[0]}.json`);
+    downloadAnchor.setAttribute('download', `ukecommerce_db_backup_${new Date().toISOString().split('T')[0]}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     document.body.removeChild(downloadAnchor);
