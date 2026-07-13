@@ -18,7 +18,7 @@ export const CMS = ({
 
   // Page SEO tags
   const [pageSEO, setPageSEO] = useState({
-    homepage: { title: 'FreshCart Organic - Home Delivery', desc: 'Order organic farm fresh groceries.' },
+    homepage: { title: 'UK E-Commerce Organic - Home Delivery', desc: 'Order organic farm fresh groceries.' },
     faq: { title: 'FreshCart FAQs - Help & Center', desc: 'Frequently asked questions about shipping zones.' },
     contact: { title: 'FreshCart Support - Get in Touch', desc: 'Contact customer care representatives.' }
   });
