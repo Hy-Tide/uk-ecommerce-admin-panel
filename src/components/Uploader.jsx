@@ -93,9 +93,53 @@ export const Uploader = ({
     setActiveCropFile(null);
   };
 
+  const [urlInput, setUrlInput] = useState('');
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', ...style }} className={className}>
       {label && <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>{label}</span>}
+
+      {/* Direct Image URL Paste Input */}
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="Paste Image URL directly (e.g. https://...)"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            fontSize: '13px',
+            borderRadius: '8px',
+            border: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            outline: 'none'
+          }}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={(e) => {
+            e.preventDefault();
+            if (urlInput.trim()) {
+              const newFile = {
+                id: `url-${Date.now()}`,
+                url: urlInput.trim(),
+                name: 'Web Image',
+                status: 'done'
+              };
+              const updated = [...files, newFile];
+              setFiles(updated);
+              onFilesChanged(updated.map(f => f.url));
+              setUrlInput('');
+            }
+          }}
+        >
+          Add URL
+        </Button>
+      </div>
       
       {/* Drop Zone Box */}
       <div

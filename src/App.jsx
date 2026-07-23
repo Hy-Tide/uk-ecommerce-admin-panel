@@ -31,6 +31,9 @@ import {
   X
 } from 'lucide-react';
 
+// Import API Services
+import { getStoredAuthData, clearAuthData } from './services/api';
+
 // Import reusable components
 import ToastContainer from './components/Notification';
 import CommandPalette from './components/CommandPalette';
@@ -308,7 +311,10 @@ export const AppLayout = ({
             )}
             {!sidebarCollapsed && (
               <button
-                onClick={() => setUser(null)}
+                onClick={() => {
+                  clearAuthData();
+                  setUser(null);
+                }}
                 style={{ border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                 title="Logout"
               >
@@ -591,7 +597,10 @@ export const AppLayout = ({
 
 export const AppContent = () => {
   // Authentication & Session
-  const [user, setUser] = useState(null); // Null if logged out
+  const [user, setUser] = useState(() => {
+    const stored = getStoredAuthData();
+    return stored?.user || null;
+  });
   const [sessionTimeoutTime, setSessionTimeoutTime] = useState(600); // 10 minutes session
 
   // Theme Mode
@@ -727,6 +736,7 @@ export const AppContent = () => {
     const interval = setInterval(() => {
       setSessionTimeoutTime((prev) => {
         if (prev <= 1) {
+          clearAuthData();
           setUser(null);
           addToast('Your session has timed out due to inactivity', 'warning');
           return 600;

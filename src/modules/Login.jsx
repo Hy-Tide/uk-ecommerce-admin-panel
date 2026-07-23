@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import { postData, showSnackbar, saveAuthData } from '../services/api';
 import { INITIAL_USERS } from '../data/seedData';
 
 export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
-  const [email, setEmail] = useState('Admin@demo.com');
+  const [email, setEmail] = useState('admin@demo.com');
   const [password, setPassword] = useState('Admin@123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -14,25 +15,15 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  const matchedUser = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setEmailError('');
     setPasswordError('');
     
-    if (!email) {
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail) {
       setEmailError('Please enter your email address.');
-      return;
-    }
-
-    if (!matchedUser) {
-      setEmailError('Email address not registered in the system.');
-      return;
-    }
-
-    if (matchedUser.status === 'Inactive') {
-      setEmailError('This account is currently inactive. Contact your administrator.');
       return;
     }
 
@@ -41,28 +32,58 @@ export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
       return;
     }
 
-    if (password !== 'Admin@123') {
-      setPasswordError('Incorrect password. Please try again.');
-      return;
-    }
-
-    if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters.');
-      return;
-    }
-
     setLoading(true);
 
-    // Simulate validation and trigger login success
-    setTimeout(() => {
+    try {
+      const payload = {
+        email: cleanEmail,
+        password
+      };
+      
+      const response = await postData('admin/auth/login', payload);
+
+      if (response.success || response.statusCode === 200) {
+        const apiUser = response?.data?.user || {};
+        const tokens = response?.data?.tokens || {};
+        const token = tokens.accessToken || response?.data?.token;
+        const refreshToken = tokens.refreshToken || response?.data?.refreshToken;
+
+        if (token) {
+          sessionStorage.setItem('sessionToken', token);
+          sessionStorage.setItem('admin_access_token', token);
+        }
+        if (refreshToken) {
+          sessionStorage.setItem('refreshToken', refreshToken);
+          sessionStorage.setItem('admin_refresh_token', refreshToken);
+        }
+
+        const matchedUser = users.find(u => u.email.toLowerCase() === cleanEmail.toLowerCase());
+
+        const userPayload = {
+          id: apiUser.id || matchedUser?.id || 'admin-id',
+          name: apiUser.name || matchedUser?.name || 'Admin',
+          email: apiUser.email || cleanEmail,
+          role: matchedUser?.role || 'Super Admin',
+          avatar: matchedUser?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
+          tokens: { accessToken: token, refreshToken }
+        };
+
+        saveAuthData(userPayload, userPayload.tokens, rememberMe);
+        showSnackbar('Login successful!', 'success');
+        setLoading(false);
+        onLoginSuccess(userPayload);
+      } else {
+        const errMsg = response?.error || response?.message || 'Login failed';
+        setPasswordError(errMsg);
+        showSnackbar(errMsg, 'error');
+        setLoading(false);
+      }
+    } catch (err) {
+      const errMsg = err.message || 'Error during login';
+      setPasswordError(errMsg);
+      showSnackbar(errMsg, 'error');
       setLoading(false);
-      onLoginSuccess({
-        name: matchedUser.name,
-        email: matchedUser.email,
-        role: matchedUser.role,
-        avatar: matchedUser.avatar
-      });
-    }, 800);
+    }
   };
 
   return (

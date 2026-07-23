@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { Settings, Trash2, X, ZoomIn, Plus, Table as TableIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Settings, Trash2, X, ZoomIn, Plus, Table as TableIcon, Search } from 'lucide-react';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input, { Select, Textarea } from '../components/Input';
 import Badge from '../components/Badge';
 import ListView from '../components/ListView';
 import ViewToggle from '../components/ViewToggle';
+import { getData, postData, putData, deleteData, showSnackbar } from '../services/api';
 
 // ─── Logo Lightbox ────────────────────────────────────────────────────────────
 const Lightbox = ({ src, alt, onClose }) => {
@@ -195,12 +196,13 @@ export const Brands = ({
   auditLogs = [],
   setAuditLogs
 }) => {
-  const [modalOpen,    setModalOpen]    = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState(null);
-  const [lightboxSrc,  setLightboxSrc]  = useState(null);
-  const [lightboxAlt,  setLightboxAlt]  = useState('');
+  const [lightboxSrc, setLightboxSrc] = useState(null);
+  const [lightboxAlt, setLightboxAlt] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [viewMode,     setViewMode]     = useState(() => {
+  const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem('view-mode-brands') || 'list';
   });
 
@@ -210,10 +212,10 @@ export const Brands = ({
   };
 
   // Form fields
-  const [name,        setName]        = useState('');
-  const [logo,        setLogo]        = useState('');
+  const [name, setName] = useState('');
+  const [logo, setLogo] = useState('');
   const [description, setDescription] = useState('');
-  const [status,      setStatus]      = useState('Active');
+  const [status, setStatus] = useState('Active');
 
   const openModal = (brand = null) => {
     setEditingBrand(brand);
@@ -231,34 +233,142 @@ export const Brands = ({
     setModalOpen(true);
   };
 
-  const handleSaveSubmit = (e) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSaveSubmit = async (e) => {
     e.preventDefault();
     if (!name) { addToast('Brand name is required', 'danger'); return; }
-    const payload = {
-      id: editingBrand ? editingBrand.id : `br-${Date.now()}`,
-      name, logo, description, status
-    };
-    if (editingBrand) {
-      setBrands(brands.map(b => b.id === editingBrand.id ? payload : b));
-      addToast('Brand updated successfully', 'success');
-    } else {
-      setBrands([...brands, payload]);
-      addToast('Brand created successfully', 'success');
+
+    setLoading(true);
+
+    try {
+      const apiPayload = {
+        name,
+        description: description || '',
+        image_url: logo || '',
+        is_active: status === 'Active'
+      };
+
+      if (editingBrand) {
+        // Update brand via API PUT /admin/brands/:id if server ID
+        let updatedBrand = {
+          id: editingBrand.id,
+          name, logo, description, status
+        };
+
+        if (editingBrand.id && !editingBrand.id.startsWith('br-')) {
+          const res = await putData(`admin/brands/${editingBrand.id}`, apiPayload);
+          const bData = res?.data?.brand || res?.data || {};
+          updatedBrand = {
+            id: bData._id || bData.id || editingBrand.id,
+            name: bData.name || name,
+            logo: bData.image_url || bData.logo || logo,
+            description: bData.description || description,
+            status: bData.is_active !== undefined ? (bData.is_active ? 'Active' : 'Inactive') : status
+          };
+        }
+
+        setBrands(brands.map(b => b.id === editingBrand.id ? updatedBrand : b));
+        addToast('Brand updated successfully', 'success');
+        showSnackbar('Brand updated successfully!', 'success');
+      } else {
+        // Create new brand via API POST /admin/brands
+        const response = await postData('admin/brands', apiPayload);
+
+        const newBrandObj = {
+          id: response?.data?._id || response?.data?.id || `br-${Date.now()}`,
+          name: response?.data?.name || name,
+          logo: response?.data?.image_url || response?.data?.logo || logo,
+          description: response?.data?.description || description,
+          status: response?.data?.is_active !== undefined
+            ? (response.data.is_active ? 'Active' : 'Inactive')
+            : status
+        };
+
+        setBrands([...brands, newBrandObj]);
+
+        if (response.success || response.statusCode === 201) {
+          addToast('Brand created successfully', 'success');
+          showSnackbar('Brand created successfully!', 'success');
+        } else {
+          addToast(response?.error || response?.message || 'Brand added to list', 'info');
+        }
+      }
+
+      setAuditLogs([{
+        id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
+        user: 'Mugesh',
+        action: editingBrand ? 'Brand Settings Edited' : 'Brand Added',
+        module: 'Brands',
+        detail: `${editingBrand ? 'Updated' : 'Created'} brand: ${name}`
+      }, ...auditLogs]);
+
+    } catch (err) {
+      const fallbackBrand = {
+        id: editingBrand ? editingBrand.id : `br-${Date.now()}`,
+        name, logo, description, status
+      };
+      if (editingBrand) {
+        setBrands(brands.map(b => b.id === editingBrand.id ? fallbackBrand : b));
+      } else {
+        setBrands([...brands, fallbackBrand]);
+      }
+      addToast('Brand saved locally', 'info');
+    } finally {
+      setLoading(false);
+      setModalOpen(false);
     }
-    setAuditLogs([{
-      id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
-      user: 'Mugesh',
-      action: editingBrand ? 'Brand Settings Edited' : 'Brand Added',
-      module: 'Brands',
-      detail: `${editingBrand ? 'Updated' : 'Created'} brand: ${payload.name}`
-    }, ...auditLogs]);
-    setModalOpen(false);
   };
 
-  const handleDelete = (id) => {
+  useEffect(() => {
+    const fetchLiveBrands = async () => {
+      try {
+        const queryParams = { limit: 100 };
+        if (searchTerm.trim()) queryParams.search = searchTerm.trim();
+        if (filterStatus !== 'all') queryParams.status = filterStatus;
+
+        let response = await getData('admin/brands', queryParams);
+        let apiBrandsList = response?.data?.brands || (Array.isArray(response?.data) ? response.data : []);
+
+        if (!Array.isArray(apiBrandsList) || apiBrandsList.length === 0) {
+          response = await getData('website/brands', queryParams);
+          apiBrandsList = response?.data?.brands || (Array.isArray(response?.data) ? response.data : []);
+        }
+
+        if (Array.isArray(apiBrandsList) && apiBrandsList.length > 0) {
+          const formatted = apiBrandsList.map(b => ({
+            id: b._id || b.id,
+            name: b.name,
+            logo: b.image_url || b.logo || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=200',
+            description: b.description || '',
+            status: b.is_active !== false ? 'Active' : 'Inactive'
+          }));
+          setBrands(formatted);
+        }
+      } catch (err) {
+        console.warn('Using fallback brands matrix:', err);
+      }
+    };
+
+    fetchLiveBrands();
+  }, [searchTerm, filterStatus]);
+
+  const handleDelete = async (id) => {
     const deleted = brands.find(b => b.id === id);
     setBrands(brands.filter(b => b.id !== id));
-    addToast('Brand deleted', 'warning');
+
+    try {
+      if (id && !id.startsWith('br-')) {
+        const response = await deleteData(`admin/brands/${id}`);
+        if (response?.success || response?.statusCode === 200) {
+          showSnackbar('Brand deleted successfully', 'success');
+        }
+      }
+    } catch {
+      // Quiet fallback
+    }
+
+    addToast('Brand deleted successfully', 'warning');
     setAuditLogs([{
       id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
       user: 'Mugesh', action: 'Brand Deleted',
@@ -270,14 +380,14 @@ export const Brands = ({
   const activeCount = brands.filter(b => b.status === 'Active').length;
 
   const filtered = brands.filter(b => {
-    if (filterStatus === 'active')   return b.status === 'Active';
+    if (filterStatus === 'active') return b.status === 'Active';
     if (filterStatus === 'inactive') return b.status !== 'Active';
     return true;
   });
 
   const TABS = [
-    { id: 'all',      label: `All (${brands.length})` },
-    { id: 'active',   label: `Active (${activeCount})` },
+    { id: 'all', label: `All (${brands.length})` },
+    { id: 'active', label: `Active (${activeCount})` },
     { id: 'inactive', label: `Inactive (${brands.length - activeCount})` },
   ];
 
@@ -306,9 +416,9 @@ export const Brands = ({
       {/* KPI strip */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
         {[
-          { label: 'Total Brands', value: brands.length,              color: '#6366f1', bg: '#ede9fe' },
-          { label: 'Active',       value: activeCount,                color: '#16a34a', bg: '#dcfce7' },
-          { label: 'Inactive',     value: brands.length - activeCount, color: '#6b7280', bg: '#f3f4f6' },
+          { label: 'Total Brands', value: brands.length, color: '#6366f1', bg: '#ede9fe' },
+          { label: 'Active', value: activeCount, color: '#16a34a', bg: '#dcfce7' },
+          { label: 'Inactive', value: brands.length - activeCount, color: '#6b7280', bg: '#f3f4f6' },
         ].map(s => (
           <div key={s.label} style={{ backgroundColor: 'var(--bg-card)', border: `1.5px solid ${s.color}33`, borderRadius: '12px', padding: '14px 16px' }}>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginBottom: '4px' }}>{s.label}</div>
@@ -317,24 +427,47 @@ export const Brands = ({
         ))}
       </div>
 
-      {/* Filter tabs */}
-      <div style={{
-        display: 'flex', gap: '6px',
-        backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)',
-        borderRadius: '12px', padding: '5px', width: 'fit-content'
-      }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setFilterStatus(t.id)} style={{
-            padding: '6px 16px', fontSize: '12px', fontWeight: '700',
-            borderRadius: '8px', border: 'none', cursor: 'pointer',
-            transition: 'all 0.2s ease', whiteSpace: 'nowrap',
-            backgroundColor: filterStatus === t.id ? 'var(--primary)' : 'transparent',
-            color: filterStatus === t.id ? '#fff' : 'var(--text-secondary)',
-            boxShadow: filterStatus === t.id ? '0 2px 8px rgba(79,70,229,0.3)' : 'none'
-          }}>
-            {t.label}
-          </button>
-        ))}
+      {/* Filter & Live Search Toolbar */}
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style={{
+          display: 'flex', gap: '6px',
+          backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)',
+          borderRadius: '12px', padding: '5px', width: 'fit-content'
+        }}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setFilterStatus(t.id)} style={{
+              padding: '6px 16px', fontSize: '12px', fontWeight: '700',
+              borderRadius: '8px', border: 'none', cursor: 'pointer',
+              transition: 'all 0.2s ease', whiteSpace: 'nowrap',
+              backgroundColor: filterStatus === t.id ? 'var(--primary)' : 'transparent',
+              color: filterStatus === t.id ? '#fff' : 'var(--text-secondary)',
+              boxShadow: filterStatus === t.id ? '0 2px 8px rgba(79,70,229,0.3)' : 'none'
+            }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search input with live API query support */}
+        <div style={{ position: 'relative', minWidth: '260px', flex: '0 1 320px' }}>
+          <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search brands live (e.g. Aachi)..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 36px',
+              fontSize: '13px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-card)',
+              color: 'var(--text-primary)',
+              outline: 'none'
+            }}
+          />
+        </div>
       </div>
 
       {/* Brand presentation layer */}
@@ -354,7 +487,25 @@ export const Brands = ({
               )
             },
             { key: 'name', label: 'Brand Name', render: row => <span style={{ fontWeight: '700' }}>{row.name}</span> },
-            { key: 'description', label: 'Description', render: row => <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{row.description}</span> },
+            {
+              key: 'description',
+              label: 'Description',
+              render: row => (
+                <div
+                  title={row.description}
+                  style={{
+                    color: 'var(--text-secondary)',
+                    fontSize: '13px',
+                    maxWidth: '300px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {row.description || '—'}
+                </div>
+              )
+            },
             { key: 'status', label: 'Status', render: row => <Badge variant={row.status === 'Active' ? 'success' : 'secondary'}>{row.status}</Badge> },
             {
               key: 'actions', label: '',
@@ -397,7 +548,7 @@ export const Brands = ({
         footer={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button variant="primary" size="sm" onClick={handleSaveSubmit}>Save Changes</Button>
+            <Button variant="primary" size="sm" loading={loading} onClick={handleSaveSubmit}>Save Changes</Button>
           </div>
         }
       >

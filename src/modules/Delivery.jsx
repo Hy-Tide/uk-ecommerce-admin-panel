@@ -16,7 +16,7 @@ export const Delivery = ({
 }) => {
   const [activeZone, setActiveZone] = useState('Zone 1 (Downtown)');
   const [assignModal, setAssignModal] = useState(false);
-  
+
   // Assign driver form
   const [selectedDriverId, setSelectedDriverId] = useState(drivers[0]?.id || '');
   const [selectedOrderId, setSelectedOrderId] = useState(orders[0]?.id || '');
@@ -39,7 +39,7 @@ export const Delivery = ({
 
     // Update driver activeOrder
     setDrivers(drivers.map(d => d.id === selectedDriverId ? { ...d, activeOrder: ord.id } : d));
-    
+
     // Update order status & assign driver
     const nextTimeline = [
       ...ord.timeline,
@@ -83,7 +83,7 @@ export const Delivery = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -97,7 +97,7 @@ export const Delivery = ({
 
       {/* Grid: Interactive SVG Zone Map vs Drivers Registry */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1.5fr))', gap: '20px' }}>
-        
+
         {/* Simulated Map */}
         <Card title="Zone Grid Heatmap Matrix" actions={<span style={{ fontSize: '11px', color: 'var(--primary)' }}>Live Dispatch Tracking</span>}>
           <div
@@ -119,7 +119,7 @@ export const Delivery = ({
               <path d="M10,20 L50,15 L90,30 L80,80 L30,90 Z" fill="none" stroke="var(--text-secondary)" strokeWidth="0.5" strokeDasharray="2" />
               <path d="M30,30 C50,20 70,40 50,70" fill="none" stroke="var(--primary)" strokeWidth="1.5" />
               <path d="M10,50 Q40,65 90,50" fill="none" stroke="var(--accent)" strokeWidth="1" />
-              
+
               {/* Delivery Zone shapes */}
               <polygon points="15,15 45,10 40,40 10,35" fill="rgba(16, 185, 129, 0.15)" stroke="var(--primary)" strokeWidth="0.5" />
               <polygon points="50,15 85,25 75,55 45,50" fill="rgba(249, 115, 22, 0.1)" stroke="var(--accent)" strokeWidth="0.5" />
@@ -159,7 +159,7 @@ export const Delivery = ({
         </Card>
 
         {/* Drivers Directory */}
-        <Card title="Active Couriers Registry" actions={<span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--success)' }}>Online: {drivers.filter(d=>d.status==='Active').length}</span>}>
+        <Card title="Active Couriers Registry" actions={<span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--success)' }}>Online: {drivers.filter(d => d.status === 'Active').length}</span>}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px' }}>
             {drivers.map(drv => (
               <div
@@ -196,7 +196,7 @@ export const Delivery = ({
 
       {/* Postcodes parameters sheet & Calendar */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-        
+
         {/* Postcodes rates sheet */}
         <Card title="Regional Delivery Zones & Rates">
           <div style={{ marginTop: '12px' }}>
@@ -246,9 +246,9 @@ export const Delivery = ({
             label="Select Active Courier"
             value={selectedDriverId}
             onChange={(e) => setSelectedDriverId(e.target.value)}
-            options={drivers.filter(d=>d.status==='Active').map(d => ({ value: d.id, label: `${d.name} (${d.vehicle})` }))}
+            options={drivers.filter(d => d.status === 'Active').map(d => ({ value: d.id, label: `${d.name} (${d.vehicle})` }))}
           />
-          
+
           <Select
             label="Select Pending Order reference"
             value={selectedOrderId}
