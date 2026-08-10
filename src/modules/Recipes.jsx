@@ -136,7 +136,9 @@ export const Recipes = ({
       nutrition: r.nutrition || 'Calories: 150 kcal',
       seoTitle: r.seoTitle || r.title || '',
       seoDescription: r.seoDescription || r.description || '',
-      linkedProducts: r.linkedProducts || []
+      linkedProducts: r.products 
+        ? r.products.map(p => typeof p === 'object' && p !== null ? (p._id || p.id) : p) 
+        : (r.linkedProducts || [])
     };
   };
 
@@ -283,6 +285,7 @@ export const Recipes = ({
       description: description.trim(),
       image_url: image.trim(),
       ingredients: parsedIngredients,
+      products: linkedProds,
       instructions: stepsText.trim(),
       is_active: isActive
     };

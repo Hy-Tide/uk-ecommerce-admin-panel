@@ -32,7 +32,8 @@ import {
   ArrowRight,
   X,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  User
 } from 'lucide-react';
 
 // Import API Services
@@ -502,11 +503,9 @@ export const AppLayout = ({
         {/* Footer profile area */}
         <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-            <img
-              src={user.avatar}
-              alt={user.name}
-              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }}
-            />
+            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--primary-color)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <User size={18} />
+            </div>
             {!sidebarCollapsed && (
               <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
                 <span style={{ fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
