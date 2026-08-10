@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Link2, Plus, Save, Trash2, CheckCircle, XCircle, UtensilsCrossed } from 'lucide-react';
+import { ChefHat, Link2, Plus, Save, Trash2, CheckCircle, XCircle, UtensilsCrossed, Search, X, RefreshCw } from 'lucide-react';
 import Button from '../components/Button';
 import Drawer from '../components/Drawer';
 import Modal from '../components/Modal';
@@ -10,7 +10,7 @@ import Card from '../components/Card';
 import ListView from '../components/ListView';
 import GridView from '../components/GridView';
 import ViewToggle from '../components/ViewToggle';
-import { fetchRecipes, createRecipe, updateRecipe, deleteRecipe, toggleRecipeStatus, fetchCuisines, createCuisine, updateCuisine, deleteCuisine, showSnackbar } from '../services/api';
+import { fetchRecipes, createRecipe, updateRecipe, deleteRecipe, toggleRecipeStatus, fetchCuisines, createCuisine, updateCuisine, deleteCuisine, showSnackbar, fetchAllProducts } from '../services/api';
 
 export const Recipes = ({
   recipes: initialRecipes = [],
@@ -63,6 +63,13 @@ export const Recipes = ({
   const [seoTitle, setSeoTitle] = useState('');
   const [seoDesc, setSeoDesc] = useState('');
   const [linkedProds, setLinkedProds] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapProductsLoadingMore, setMapProductsLoadingMore] = useState(false);
+  const [selectedProductDetails, setSelectedProductDetails] = useState([]);
 
   // Fetch live cuisines from API
   const loadCuisines = async () => {
@@ -105,10 +112,65 @@ export const Recipes = ({
     }
   };
 
+  const loadAvailableProducts = async (searchQuery = '', pageNum = 1, isLoadMore = false) => {
+    if (pageNum === 1 && !isLoadMore) {
+      setMapLoading(true);
+    } else {
+      setMapProductsLoadingMore(true);
+    }
+
+    try {
+      const res = await fetchAllProducts({
+        search: searchQuery,
+        page: pageNum,
+        limit: 20
+      });
+
+      if (res && res.success !== false) {
+        const rawList = res.data?.products || (Array.isArray(res.data) ? res.data : []);
+        const fetchedProds = Array.isArray(rawList) ? rawList : [];
+
+        if (isLoadMore) {
+          setAllProducts(prev => {
+            const existingIds = new Set(prev.map(p => String(p._id || p.id)));
+            const filteredNew = fetchedProds.filter(p => !existingIds.has(String(p._id || p.id)));
+            return [...prev, ...filteredNew];
+          });
+        } else {
+          setAllProducts(fetchedProds);
+        }
+
+        setHasMoreProducts(fetchedProds.length === 20);
+      } else {
+        if (!isLoadMore) setAllProducts([]);
+        setHasMoreProducts(false);
+      }
+    } catch (err) {
+      console.error('Error fetching products for recipe mapping:', err);
+      if (!isLoadMore) setAllProducts([]);
+      setHasMoreProducts(false);
+    } finally {
+      setMapLoading(false);
+      setMapProductsLoadingMore(false);
+    }
+  };
+
   useEffect(() => {
     loadRecipes();
     loadCuisines();
   }, []);
+
+  // Debounced effect for product mapping search in recipes
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const delayDebounceFn = setTimeout(() => {
+      setProductPage(1);
+      loadAvailableProducts(productSearch, 1, false);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [productSearch, drawerOpen]);
 
   const normalizeRecipe = (r) => {
     const ingArr = Array.isArray(r.ingredients)
@@ -137,8 +199,11 @@ export const Recipes = ({
       seoTitle: r.seoTitle || r.title || '',
       seoDescription: r.seoDescription || r.description || '',
       linkedProducts: r.products 
-        ? r.products.map(p => typeof p === 'object' && p !== null ? (p._id || p.id) : p) 
-        : (r.linkedProducts || [])
+        ? r.products.map(p => typeof p === 'object' && p !== null ? String(p._id || p.id) : String(p)) 
+        : (Array.isArray(r.linkedProducts) ? r.linkedProducts.map(String) : []),
+      rawProductsList: r.products && Array.isArray(r.products)
+        ? r.products.filter(p => typeof p === 'object' && p !== null)
+        : []
     };
   };
 
@@ -236,6 +301,10 @@ export const Recipes = ({
 
   const openDrawer = (rec = null) => {
     setActiveRecipe(rec);
+    setProductSearch('');
+    setProductPage(1);
+    setHasMoreProducts(true);
+
     if (rec) {
       setTitle(rec.title || '');
       setDescription(rec.description || '');
@@ -249,6 +318,7 @@ export const Recipes = ({
       setSeoTitle(rec.seoTitle || '');
       setSeoDesc(rec.seoDescription || '');
       setLinkedProds(rec.linkedProducts || []);
+      setSelectedProductDetails(rec.rawProductsList || []);
     } else {
       setTitle('');
       setDescription('');
@@ -262,8 +332,10 @@ export const Recipes = ({
       setSeoTitle('');
       setSeoDesc('');
       setLinkedProds([]);
+      setSelectedProductDetails([]);
     }
     setDrawerOpen(true);
+    loadAvailableProducts('', 1, false);
   };
 
   const handleSaveRecipe = async (e) => {
@@ -399,10 +471,22 @@ export const Recipes = ({
   };
 
   const toggleProductLink = (prodId) => {
-    if (linkedProds.includes(prodId)) {
-      setLinkedProds(linkedProds.filter(id => id !== prodId));
+    const prodIdStr = String(prodId);
+    if (linkedProds.includes(prodIdStr)) {
+      setLinkedProds(linkedProds.filter(id => id !== prodIdStr));
     } else {
-      setLinkedProds([...linkedProds, prodId]);
+      setLinkedProds([...linkedProds, prodIdStr]);
+    }
+  };
+
+  const handleScroll = (e) => {
+    if (mapLoading || mapProductsLoadingMore || !hasMoreProducts) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 20) {
+      const nextPage = productPage + 1;
+      setProductPage(nextPage);
+      loadAvailableProducts(productSearch, nextPage, true);
     }
   };
 
@@ -681,28 +765,177 @@ export const Recipes = ({
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '12px' }}>
               Checked items will display purchase links directly under the recipe on your customer storefront.
             </span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '8px' }}>
-              {products.map(p => (
-                <label
-                  key={p.id || p._id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    color: 'var(--text-primary)'
-                  }}
+
+            {/* Currently Selected Products */}
+            {selectedProductDetails.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                {selectedProductDetails.map(p => {
+                  const pId = p._id || p.id;
+                  const imgUrl = p.images?.[0] || p.image || (Array.isArray(p.images) ? p.images[0] : null);
+                  return (
+                    <div
+                      key={pId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+                        border: '1px solid rgba(79, 70, 229, 0.15)',
+                        borderRadius: '20px',
+                        fontSize: '11px',
+                        color: 'var(--primary)',
+                        fontWeight: '600'
+                      }}
+                    >
+                      <img
+                        src={imgUrl || '/logo.png'}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/logo.png';
+                        }}
+                        style={{ width: '16px', height: '16px', borderRadius: '50%', objectFit: 'cover' }}
+                      />
+                      <span>{p.name || p.title}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pIdStr = String(pId);
+                          setLinkedProds(linkedProds.filter(id => String(id) !== pIdStr));
+                          setSelectedProductDetails(selectedProductDetails.filter(prod => String(prod._id || prod.id) !== pIdStr));
+                        }}
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          color: 'var(--primary)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '0 2px',
+                          fontWeight: 'bold',
+                          fontSize: '12px'
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Search Input for Products */}
+            <div style={{ position: 'relative', marginBottom: '10px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Search store catalog products to link..."
+                style={{
+                  width: '100%',
+                  padding: '6px 10px 6px 30px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+              {productSearch && (
+                <button
+                  type="button"
+                  onClick={() => setProductSearch('')}
+                  style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '11px' }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={linkedProds.includes(p.id || p._id)}
-                    onChange={() => toggleProductLink(p.id || p._id)}
-                    style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
-                  />
-                  {p.name}
-                </label>
-              ))}
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Scrollable Products List with Pagination */}
+            <div
+              onScroll={handleScroll}
+              style={{
+                maxHeight: '180px',
+                overflowY: 'auto',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '8px',
+                backgroundColor: 'var(--bg-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px'
+              }}
+            >
+              {mapLoading ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '20px', height: '20px', border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  <span style={{ fontSize: '11px' }}>Loading products...</span>
+                </div>
+              ) : allProducts.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '11px' }}>
+                  No products found.
+                </div>
+              ) : (
+                allProducts.map(p => {
+                  const pId = p._id || p.id;
+                  const pIdStr = String(pId);
+                  const isChecked = linkedProds.includes(pIdStr);
+                  const imgUrl = p.images?.[0] || p.image || (Array.isArray(p.images) ? p.images[0] : null);
+                  return (
+                    <label
+                      key={pId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        color: 'var(--text-primary)',
+                        padding: '4px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: isChecked ? 'rgba(79, 70, 229, 0.03)' : 'transparent',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          if (isChecked) {
+                            setLinkedProds(linkedProds.filter(id => String(id) !== pIdStr));
+                            setSelectedProductDetails(selectedProductDetails.filter(prod => String(prod._id || prod.id) !== pIdStr));
+                          } else {
+                            setLinkedProds([...linkedProds, pIdStr]);
+                            setSelectedProductDetails([...selectedProductDetails, p]);
+                          }
+                        }}
+                        style={{ accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <img
+                        src={imgUrl || '/logo.png'}
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/logo.png';
+                        }}
+                        style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'cover' }}
+                      />
+                      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.name}
+                      </div>
+                    </label>
+                  );
+                })
+              )}
+              {mapProductsLoadingMore && (
+                <div style={{ padding: '8px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <div style={{ width: '12px', height: '12px', border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <span style={{ fontSize: '11px' }}>Loading more...</span>
+                </div>
+              )}
             </div>
           </div>
 

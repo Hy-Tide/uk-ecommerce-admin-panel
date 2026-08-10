@@ -71,6 +71,7 @@ const Payments = React.lazy(() => import('./modules/Payments'));
 const Settings = React.lazy(() => import('./modules/Settings'));
 const UserManagement = React.lazy(() => import('./modules/UserManagement'));
 const Security = React.lazy(() => import('./modules/Security'));
+const Banners = React.lazy(() => import('./modules/Banners'));
 
 // Import initial database seeds
 import {
@@ -1035,7 +1036,7 @@ export const AppContent = () => {
                 dashboard: true, products: true, categories: true, brands: true, inventory: true,
                 orders: true, customers: true, coupons: true, delivery: true, cms: true,
                 blogs: true, recipes: true, whatsapp: true, reports: true, settings: true,
-                user_management: true, security: true
+                user_management: true, security: true, banners: true
               };
             });
             setRolePermissions(matrix);
@@ -1277,6 +1278,7 @@ export const AppContent = () => {
     { key: 'notifications', label: 'Push Notifications', icon: Bell },
     { key: 'delivery', label: 'Delivery Dispatch', icon: Truck },
     { key: 'home-config', label: 'Home CMS', icon: SettingsIcon },
+    { key: 'banners', label: 'Page Banners', icon: Sparkles },
     { key: 'blogs', label: 'Blog Posts', icon: PenTool },
     { key: 'recipes', label: 'Recipes Editor', icon: ChefHat },
     { key: 'testimonials', label: 'Testimonials', icon: MessageSquare },
@@ -1724,7 +1726,20 @@ export const AppContent = () => {
 
         {/* Dynamic Placeholder Routes requested by user */}
         <Route path="reviews" element={<PlaceholderPage name="Reviews Control Panel" />} />
-        <Route path="banners" element={<PlaceholderPage name="Banners & Advertisements" />} />
+        <Route
+          path="banners"
+          element={
+            <ProtectedRoute moduleKey="banners" user={user} rolePermissions={rolePermissions} navigate={navigate}>
+              <React.Suspense fallback={<LoadingFallback />}>
+                <Banners
+                  addToast={addToast}
+                  auditLogs={auditLogs}
+                  setAuditLogs={setAuditLogs}
+                />
+              </React.Suspense>
+            </ProtectedRoute>
+          }
+        />
         <Route path="profile" element={<PlaceholderPage name="User Profile Settings" />} />
         <Route path="notifications" element={<PlaceholderPage name="System Notifications Configuration" />} />
         <Route path="analytics" element={<PlaceholderPage name="Advanced Marketing Analytics" />} />
