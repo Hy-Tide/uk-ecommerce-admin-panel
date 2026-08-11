@@ -511,31 +511,31 @@ export const INITIAL_ROLES_MATRIX = {
     dashboard: true, products: true, categories: true, brands: true, inventory: true,
     orders: true, customers: true, coupons: true, delivery: true, cms: true,
     blogs: true, recipes: true, whatsapp: true, reports: true, settings: true,
-    user_management: true, security: true, notifications: true, audit_logs: true
+    user_management: true, security: true, notifications: true, audit_logs: true, banners: true
   },
   'Store Manager': {
     dashboard: true, products: true, categories: true, brands: true, inventory: true,
     orders: true, customers: true, coupons: true, delivery: true, cms: true,
     blogs: true, recipes: true, whatsapp: false, reports: true, settings: false,
-    user_management: true, security: false, notifications: true, audit_logs: true
+    user_management: true, security: false, notifications: true, audit_logs: true, banners: true
   },
   'Customer Support': {
     dashboard: true, products: false, categories: false, brands: false, inventory: false,
     orders: true, customers: true, coupons: true, delivery: false, cms: false,
     blogs: false, recipes: false, whatsapp: true, reports: false, settings: false,
-    user_management: false, security: false, notifications: true, audit_logs: false
+    user_management: false, security: false, notifications: true, audit_logs: false, banners: false
   },
   'Warehouse Staff': {
     dashboard: false, products: true, categories: false, brands: false, inventory: true,
     orders: true, customers: false, coupons: false, delivery: true, cms: false,
     blogs: false, recipes: false, whatsapp: false, reports: false, settings: false,
-    user_management: false, security: false, notifications: true, audit_logs: false
+    user_management: false, security: false, notifications: true, audit_logs: false, banners: false
   },
   'Marketing Team': {
     dashboard: true, products: true, categories: true, brands: true, inventory: false,
     orders: false, customers: true, coupons: true, delivery: false, cms: true,
     blogs: true, recipes: true, whatsapp: true, reports: true, settings: false,
-    user_management: false, security: false, notifications: true, audit_logs: false
+    user_management: false, security: false, notifications: true, audit_logs: false, banners: true
   }
 };
 

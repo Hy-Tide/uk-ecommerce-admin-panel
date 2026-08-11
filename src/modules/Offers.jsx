@@ -48,6 +48,12 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
   const [productSearch, setProductSearch] = useState('');
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [mapSubmitting, setMapSubmitting] = useState(false);
+  const [mapTab, setMapTab] = useState('mapped'); // 'mapped' | 'add'
+  const [initialMappedIds, setInitialMappedIds] = useState([]);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [productPage, setProductPage] = useState(1);
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [mapProductsLoadingMore, setMapProductsLoadingMore] = useState(false);
 
   const handleViewChange = (newView) => {
     setViewMode(newView);
@@ -80,23 +86,60 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
     loadOffers();
   }, []);
 
-  // Load available products for mapping strictly from API response
-  const loadAvailableProducts = async () => {
-    if (propProducts && Array.isArray(propProducts) && propProducts.length > 0) {
-      setAllProducts(propProducts);
-      return;
+  // Debounced effect for available products search from API
+  useEffect(() => {
+    if (!mapDrawerOpen || mapTab !== 'add') return;
+
+    const delayDebounceFn = setTimeout(() => {
+      setProductPage(1);
+      loadAvailableProducts(productSearch, 1, false);
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [productSearch, mapTab, mapDrawerOpen]);
+
+  // Load available products for mapping strictly from API response with pagination and search
+  const loadAvailableProducts = async (searchQuery = '', pageNum = 1, isLoadMore = false) => {
+    if (pageNum === 1 && !isLoadMore) {
+      setMapLoading(true);
+    } else {
+      setMapProductsLoadingMore(true);
     }
+
     try {
-      const res = await fetchAllProducts();
+      const res = await fetchAllProducts({
+        search: searchQuery,
+        page: pageNum,
+        limit: 20
+      });
+
       if (res && res.success !== false) {
         const rawList = res.data?.products || (Array.isArray(res.data) ? res.data : []);
-        setAllProducts(Array.isArray(rawList) ? rawList : []);
+        const fetchedProds = Array.isArray(rawList) ? rawList : [];
+
+        if (isLoadMore) {
+          setAllProducts(prev => {
+            const existingIds = new Set(prev.map(p => String(p._id || p.id)));
+            const filteredNew = fetchedProds.filter(p => !existingIds.has(String(p._id || p.id)));
+            return [...prev, ...filteredNew];
+          });
+        } else {
+          setAllProducts(fetchedProds);
+        }
+
+        // If backend returns fewer than page limit, there are no more products
+        setHasMoreProducts(fetchedProds.length === 20);
       } else {
-        setAllProducts([]);
+        if (!isLoadMore) setAllProducts([]);
+        setHasMoreProducts(false);
       }
     } catch (err) {
       console.error('Error fetching products for mapping:', err);
-      setAllProducts([]);
+      if (!isLoadMore) setAllProducts([]);
+      setHasMoreProducts(false);
+    } finally {
+      setMapLoading(false);
+      setMapProductsLoadingMore(false);
     }
   };
 
@@ -152,79 +195,128 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
   };
 
   // Open Drawer 2: Map Products to Offer
-  const openMapProductsDrawer = (off) => {
+  const openMapProductsDrawer = async (off) => {
     setMappingOffer(off);
     const existing = off && off.productIds
-      ? (Array.isArray(off.productIds) ? off.productIds.map(p => typeof p === 'object' ? (p._id || p.id) : String(p)) : [String(off.productIds)])
+      ? (Array.isArray(off.productIds) ? off.productIds.map(p => typeof p === 'object' ? String(p._id || p.id) : String(p)) : [String(off.productIds)])
       : [];
     setSelectedProductIds(existing);
+    setInitialMappedIds(existing);
     setProductSearch('');
-    loadAvailableProducts();
+    setProductPage(1);
+    setHasMoreProducts(true);
     setMapDrawerOpen(true);
+    setMapTab(existing.length > 0 ? 'mapped' : 'add');
 
-    // Fetch mapped products dynamically via GET /admin/offers/{id}/products
-    const offId = off._id || off.id;
-    if (offId) {
-      fetchOfferProducts(offId).then(res => {
+    setMapLoading(true);
+    try {
+      await loadAvailableProducts('', 1, false);
+
+      // Fetch mapped products dynamically via GET /admin/offers/{id}/products
+      const offId = off._id || off.id;
+      if (offId) {
+        const res = await fetchOfferProducts(offId);
         if (res && res.success !== false) {
           const rawProds = res.data?.products || (Array.isArray(res.data) ? res.data : null);
           if (Array.isArray(rawProds)) {
-            const mappedIds = rawProds.map(p => typeof p === 'object' ? (p._id || p.id) : String(p));
+            const mappedIds = rawProds.map(p => typeof p === 'object' ? String(p._id || p.id) : String(p));
             setSelectedProductIds(mappedIds);
+            setInitialMappedIds(mappedIds);
+            setMapTab(mappedIds.length > 0 ? 'mapped' : 'add');
           }
         }
-      }).catch(err => {
-        // Fallback to local productIds
-      });
+      }
+    } catch (err) {
+      console.error('Error loading available/mapped products for offer:', err);
+    } finally {
+      setMapLoading(false);
     }
   };
 
   // Product Selection Handlers for Map Drawer
   const toggleProductSelection = (pId) => {
-    if (selectedProductIds.includes(pId)) {
-      setSelectedProductIds(selectedProductIds.filter(id => id !== pId));
+    const pIdStr = String(pId);
+    if (selectedProductIds.includes(pIdStr)) {
+      setSelectedProductIds(selectedProductIds.filter(id => String(id) !== pIdStr));
     } else {
-      setSelectedProductIds([...selectedProductIds, pId]);
+      setSelectedProductIds([...selectedProductIds, pIdStr]);
     }
   };
 
-  const modalFilteredProducts = (allProducts || []).filter(p => {
+  const handleScroll = (e) => {
+    if (mapTab !== 'add' || mapLoading || mapProductsLoadingMore || !hasMoreProducts) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 20) {
+      const nextPage = productPage + 1;
+      setProductPage(nextPage);
+      loadAvailableProducts(productSearch, nextPage, true);
+    }
+  };
+
+  const mappedProducts = (allProducts || []).filter(p => {
+    const pId = p._id || p.id;
+    return selectedProductIds.includes(String(pId));
+  });
+
+  const availableProducts = (allProducts || []).filter(p => {
+    const pId = p._id || p.id;
+    return !initialMappedIds.includes(String(pId));
+  });
+
+  const filteredMappedProducts = mappedProducts.filter(p => {
     if (!productSearch.trim()) return true;
     const q = productSearch.toLowerCase();
     const pName = (p.name || p.title || '').toLowerCase();
     const pSku = (p.sku || '').toLowerCase();
     const pCat = (p.category || '').toLowerCase();
-    const pId = (p._id || p.id || '').toLowerCase();
+    const pId = String(p._id || p.id || '').toLowerCase();
+    return pName.includes(q) || pSku.includes(q) || pCat.includes(q) || pId.includes(q);
+  });
+
+  const filteredAvailableProducts = availableProducts.filter(p => {
+    if (!productSearch.trim()) return true;
+    const q = productSearch.toLowerCase();
+    const pName = (p.name || p.title || '').toLowerCase();
+    const pSku = (p.sku || '').toLowerCase();
+    const pCat = (p.category || '').toLowerCase();
+    const pId = String(p._id || p.id || '').toLowerCase();
     return pName.includes(q) || pSku.includes(q) || pCat.includes(q) || pId.includes(q);
   });
 
   const handleSelectAllProducts = () => {
-    const filteredIds = modalFilteredProducts.map(p => p._id || p.id);
+    const filteredIds = filteredAvailableProducts.map(p => String(p._id || p.id));
     const combined = Array.from(new Set([...selectedProductIds, ...filteredIds]));
     setSelectedProductIds(combined);
   };
 
   const handleClearSelectedProducts = () => {
-    setSelectedProductIds([]);
+    setSelectedProductIds(initialMappedIds);
   };
 
   // Remove single product from offer via DELETE /admin/offers/{id}/products/{productId}
   const handleRemoveProductFromOffer = async (pId, e) => {
     if (e) e.stopPropagation();
     const offerId = mappingOffer ? (mappingOffer._id || mappingOffer.id) : null;
-    
-    const updatedIds = selectedProductIds.filter(id => id !== pId);
+    const pIdStr = String(pId);
+
+    const updatedIds = selectedProductIds.filter(id => String(id) !== pIdStr);
     setSelectedProductIds(updatedIds);
 
-    if (offerId) {
-      setOffers(offers.map(o => ((o._id || o.id) === offerId ? { ...o, productIds: updatedIds } : o)));
-      try {
-        const res = await removeProductFromOffer(offerId, pId);
-        if (res && res.success !== false) {
-          if (addToast) addToast(res.message || 'Product removed from offer successfully', 'info');
+    if (initialMappedIds.includes(pIdStr)) {
+      const updatedInitialIds = initialMappedIds.filter(id => String(id) !== pIdStr);
+      setInitialMappedIds(updatedInitialIds);
+
+      if (offerId) {
+        setOffers(offers.map(o => ((o._id || o.id) === offerId ? { ...o, productIds: updatedIds } : o)));
+        try {
+          const res = await removeProductFromOffer(offerId, pId);
+          if (res && res.success !== false) {
+            if (addToast) addToast(res.message || 'Product removed from offer successfully', 'info');
+          }
+        } catch (err) {
+          console.error('Error removing product from offer:', err);
         }
-      } catch (err) {
-        console.error('Error removing product from offer:', err);
       }
     }
   };
@@ -389,7 +481,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
     const searchMatch = !searchTerm.trim() ||
       (o.title || o.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (o.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     if (!searchMatch) return false;
 
     if (filterStatus === 'active') return o.isActive !== false;
@@ -403,7 +495,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
+
       {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -664,7 +756,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
                         {off.description || 'Festive and seasonal grocery offer.'}
                       </p>
-                      
+
                       {/* Mapped Products Action Banner */}
                       <div
                         onClick={() => openMapProductsDrawer(off)}
@@ -878,14 +970,64 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
+
           {/* Header Banner */}
           <div style={{ backgroundColor: 'rgba(79, 70, 229, 0.05)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-primary)' }}>{mappingOffer?.title || mappingOffer?.name}</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Search and select products to assign to this offer.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Search, view mapped products, or add new products.</div>
             </div>
             <Badge variant="primary">{selectedProductIds.length} Mapped</Badge>
+          </div>
+
+          {/* Tabs Navigation */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', gap: '16px', marginBottom: '4px' }}>
+            <button
+              type="button"
+              onClick={() => { setMapTab('mapped'); setProductSearch(''); }}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '700',
+                border: 'none',
+                borderBottom: mapTab === 'mapped' ? '2px solid var(--primary)' : '2px solid transparent',
+                color: mapTab === 'mapped' ? 'var(--primary)' : 'var(--text-secondary)',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              Mapped Products
+              <Badge variant={selectedProductIds.length > 0 ? 'primary' : 'secondary'}>
+                {selectedProductIds.length}
+              </Badge>
+            </button>
+            <button
+              type="button"
+              onClick={() => { setMapTab('add'); setProductSearch(''); }}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '700',
+                border: 'none',
+                borderBottom: mapTab === 'add' ? '2px solid var(--primary)' : '2px solid transparent',
+                color: mapTab === 'add' ? 'var(--primary)' : 'var(--text-secondary)',
+                backgroundColor: 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              Add New Products
+              <Badge variant="secondary">
+                {availableProducts.length}
+              </Badge>
+            </button>
           </div>
 
           {/* Product Search & Selection Actions */}
@@ -896,7 +1038,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                 type="text"
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                placeholder="Search products by name, category, or SKU..."
+                placeholder={mapTab === 'mapped' ? "Search mapped products..." : "Search available products..."}
                 style={{
                   width: '100%',
                   padding: '8px 12px 8px 36px',
@@ -918,70 +1060,75 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                 </button>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <Button variant="outline" size="sm" type="button" onClick={handleSelectAllProducts}>
-                Select All
-              </Button>
-              {selectedProductIds.length > 0 && (
-                <Button variant="ghost" size="sm" type="button" onClick={handleClearSelectedProducts} style={{ color: 'var(--text-muted)' }}>
-                  Clear
+
+            {mapTab === 'add' && (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <Button variant="outline" size="sm" type="button" onClick={handleSelectAllProducts}>
+                  Select All
                 </Button>
-              )}
-            </div>
+                {selectedProductIds.length > initialMappedIds.length && (
+                  <Button variant="ghost" size="sm" type="button" onClick={handleClearSelectedProducts} style={{ color: 'var(--text-muted)' }}>
+                    Reset
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Product List Selector Container */}
-          <div style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'var(--bg-card)' }}>
-            {modalFilteredProducts.length === 0 ? (
-              <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                No products found matching "{productSearch}"
-              </div>
-            ) : (
-              modalFilteredProducts.map(prod => {
-                const prodId = prod._id || prod.id;
-                const isSelected = selectedProductIds.includes(prodId);
-                const imgUrl = prod.images?.[0] || prod.image || (Array.isArray(prod.images) ? prod.images[0] : null);
-                const price = prod.salePrice || prod.regularPrice || prod.price;
+          <div
+            onScroll={handleScroll}
+            style={{ maxHeight: '420px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: 'var(--bg-card)' }}
+          >
+            {mapTab === 'mapped' ? (
+              mapLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '24px', height: '24px', border: '3px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  <span style={{ fontSize: '13px', fontWeight: '500' }}>Loading mapped products...</span>
+                </div>
+              ) : filteredMappedProducts.length === 0 ? (
+                <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  {mappedProducts.length === 0
+                    ? "No products currently mapped. Switch to the 'Add New Products' tab to assign products."
+                    : `No mapped products found matching "${productSearch}"`}
+                </div>
+              ) : (
+                filteredMappedProducts.map(prod => {
+                  const prodId = prod._id || prod.id;
+                  const imgUrl = prod.images?.[0] || prod.image || (Array.isArray(prod.images) ? prod.images[0] : null);
+                  const price = prod.salePrice || prod.regularPrice || prod.price;
 
-                return (
-                  <div
-                    key={prodId}
-                    onClick={() => toggleProductSelection(prodId)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '10px 12px',
-                      borderRadius: '8px',
-                      border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
-                      backgroundColor: isSelected ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => {}} // Handled by outer container onClick
-                      style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
-                    />
-                    <ImageWithFallback src={imgUrl} alt={prod.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                        {prod.name || prod.title}
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', gap: '8px', marginTop: '2px' }}>
-                        {prod.category && <span>{prod.category}</span>}
-                        {prod.sku && <span>SKU: {prod.sku}</span>}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      {price !== undefined && (
-                        <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>
-                          ${Number(price).toFixed(2)}
+                  return (
+                    <div
+                      key={prodId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'transparent',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <ImageWithFallback src={imgUrl} alt={prod.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          {prod.name || prod.title}
                         </div>
-                      )}
-                      {isSelected && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                          {prod.category && <span>{prod.category}</span>}
+                          {prod.sku && <span>SKU: {prod.sku}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {price !== undefined && (
+                          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>
+                            ${Number(price).toFixed(2)}
+                          </div>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => handleRemoveProductFromOffer(prodId, e)}
@@ -991,22 +1138,107 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
                             color: 'var(--danger)',
                             borderRadius: '6px',
-                            padding: '4px 8px',
+                            padding: '6px 12px',
                             fontSize: '11px',
-                            fontWeight: '600',
+                            fontWeight: '700',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '4px',
+                            transition: 'all 0.2s'
                           }}
                         >
                           <Trash2 size={12} /> Remove
                         </button>
-                      )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })
+              )
+            ) : (
+              mapLoading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '24px', height: '24px', border: '3px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                  <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                  <span style={{ fontSize: '13px', fontWeight: '500' }}>Loading available products...</span>
+                </div>
+              ) : filteredAvailableProducts.length === 0 ? (
+                <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  {availableProducts.length === 0
+                    ? "All available products are already mapped to this offer."
+                    : `No products found matching "${productSearch}"`}
+                </div>
+              ) : (
+                filteredAvailableProducts.map(prod => {
+                  const prodId = prod._id || prod.id;
+                  const prodIdStr = String(prodId);
+                  const isSelected = selectedProductIds.includes(prodIdStr);
+                  const imgUrl = prod.images?.[0] || prod.image || (Array.isArray(prod.images) ? prod.images[0] : null);
+                  const price = prod.salePrice || prod.regularPrice || prod.price;
+
+                  return (
+                    <div
+                      key={prodId}
+                      onClick={() => toggleProductSelection(prodId)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: isSelected ? '2px solid var(--primary)' : '1px solid var(--border-color)',
+                        backgroundColor: isSelected ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => { }} // Handled by outer container onClick
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <ImageWithFallback src={imgUrl} alt={prod.name} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          {prod.name || prod.title}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', gap: '8px', marginTop: '2px' }}>
+                          {prod.category && <span>{prod.category}</span>}
+                          {prod.sku && <span>SKU: {prod.sku}</span>}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {price !== undefined && (
+                          <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--primary)' }}>
+                            ${Number(price).toFixed(2)}
+                          </div>
+                        )}
+                        {isSelected && (
+                          <span
+                            style={{
+                              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                              color: '#10b981',
+                              borderRadius: '6px',
+                              padding: '2px 8px',
+                              fontSize: '11px',
+                              fontWeight: '700'
+                            }}
+                          >
+                            Selected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )
+            )}
+            {mapProductsLoadingMore && (
+              <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: '12px' }}>Loading more products...</span>
+              </div>
             )}
           </div>
 

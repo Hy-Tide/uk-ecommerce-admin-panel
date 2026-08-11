@@ -54,6 +54,7 @@ export const CommandPalette = ({
     { type: 'navigation', label: 'Go to Payments & Stripe Refunds', key: 'payments', section: 'Navigation' },
     { type: 'navigation', label: 'Go to Push Notifications Center', key: 'notifications', section: 'Navigation' },
     { type: 'navigation', label: 'Go to CMS Editor', key: 'cms', section: 'Navigation' },
+    { type: 'navigation', label: 'Go to Website Page Banners', key: 'banners', section: 'Navigation' },
     { type: 'navigation', label: 'Go to Blogs Publisher', key: 'blogs', section: 'Navigation' },
     { type: 'navigation', label: 'Go to Customer Testimonials', key: 'testimonials', section: 'Navigation' },
     { type: 'navigation', label: 'Go to WhatsApp Campaigns', key: 'whatsapp', section: 'Navigation' },

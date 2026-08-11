@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   GripVertical, Save, Eye, Plus, Trash2, Search, ArrowUp, ArrowDown,
   FileText, ChevronRight, ChevronLeft, ToggleLeft, ToggleRight, X, AlertCircle
@@ -104,118 +104,185 @@ export const HomeConfiguration = ({
     loadHomeConfiguration();
   }, [cmsData.homeSections]);
 
-  // Fetch real data on mount from the REST API endpoints to populate options and checklists
-  useEffect(() => {
-    const fetchRealData = async () => {
-      try {
-        const { getData } = await import('../services/api');
-        const queryParams = { limit: 100 };
+  const fetchedFlags = useRef({
+    categories: initialCategories.length > 0,
+    brands: initialBrands.length > 0,
+    products: initialProducts.length > 0,
+    recipes: initialRecipes.length > 0
+  });
 
-        // 1. Fetch categories & subcategories
-        let catRes = await getData('admin/categories', queryParams);
-        let catList = catRes?.data?.categories || (Array.isArray(catRes?.data) ? catRes.data : []);
+  const fetchCategoriesIfNeeded = async () => {
+    if (fetchedFlags.current.categories) return;
+    try {
+      const { getData } = await import('../services/api');
+      const queryParams = { limit: 100 };
+      let catRes = await getData('admin/categories', queryParams);
+      let catList = catRes?.data?.categories || (Array.isArray(catRes?.data) ? catRes.data : []);
+      let subRes = await getData('admin/subcategories', queryParams);
+      let subList = subRes?.data?.subCategories || subRes?.data?.subcategories || (Array.isArray(subRes?.data) ? subRes.data : []);
 
+      if (Array.isArray(catList) && catList.length > 0) {
+        const formattedCats = catList.map(c => ({
+          id: c._id || c.id,
+          name: c.name,
+          parent: null,
+          icon: c.icon || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=100'
+        }));
 
-        let subRes = await getData('admin/subcategories', queryParams);
-        let subList = subRes?.data?.subCategories || subRes?.data?.subcategories || (Array.isArray(subRes?.data) ? subRes.data : []);
+        const formattedSubs = Array.isArray(subList) ? subList.map(s => {
+          const parentCat = catList.find(c => c._id === s.category_id || c.id === s.category_id || c._id === s.categoryId || c.id === s.categoryId);
+          return {
+            id: s._id || s.id,
+            name: s.name,
+            parent: parentCat ? parentCat.name : 'Pantry',
+            icon: s.icon || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=100'
+          };
+        }) : [];
 
-        if (Array.isArray(catList) && catList.length > 0) {
-          const formattedCats = catList.map(c => ({
-            id: c._id || c.id,
-            name: c.name,
-            parent: null,
-            icon: c.icon || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=100'
-          }));
-
-          const formattedSubs = Array.isArray(subList) ? subList.map(s => {
-            const parentCat = catList.find(c => c._id === s.category_id || c.id === s.category_id || c._id === s.categoryId || c.id === s.categoryId);
-            return {
-              id: s._id || s.id,
-              name: s.name,
-              parent: parentCat ? parentCat.name : 'Pantry',
-              icon: s.icon || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=100'
-            };
-          }) : [];
-
-          setCategories([...formattedCats, ...formattedSubs]);
-        }
-
-        // 2. Fetch brands
-        let brandRes = await getData('admin/brands', queryParams);
-        let brandList = brandRes?.data?.brands || (Array.isArray(brandRes?.data) ? brandRes.data : []);
-
-        if (Array.isArray(brandList) && brandList.length > 0) {
-          setBrands(brandList.map(b => ({
-            id: b._id || b.id,
-            name: b.name,
-            logo: b.logo || 'https://images.unsplash.com/photo-1500937386664-56d159062255?auto=format&fit=crop&q=80&w=100'
-          })));
-        }
-
-        // 3. Fetch products
-        let prodRes = await getData('admin/products', queryParams);
-        let prodList = prodRes?.data?.products || (Array.isArray(prodRes?.data) ? prodRes.data : []);
-
-        if (Array.isArray(prodList) && prodList.length > 0) {
-          setProducts(prodList.map(p => {
-            const rawVars = (Array.isArray(p.variations) && p.variations.length > 0)
-              ? p.variations
-              : ((Array.isArray(p.variants) && p.variants.length > 0) ? p.variants : []);
-            const parsedVars = rawVars.map((v, idx) => ({
-              id: v._id || v.id || `var-${idx + 1}`,
-              regularPrice: v.regularPrice !== undefined ? v.regularPrice : p.base_price || 0,
-              salePrice: v.salePrice !== undefined ? v.salePrice : p.discount_price || 0,
-              stock: v.stockQuantity !== undefined ? v.stockQuantity : (v.stock !== undefined ? v.stock : 0),
-            }));
-            const firstVariant = parsedVars[0] || {};
-            const primaryRegPrice = firstVariant.regularPrice !== undefined ? firstVariant.regularPrice : (p.base_price || 0);
-            const primarySalePrice = firstVariant.salePrice !== undefined ? firstVariant.salePrice : (p.discount_price || primaryRegPrice);
-
-            return {
-              id: p._id || p.id,
-              name: p.name || p.title,
-              sku: p.sku || `SKU-${p._id ? p._id.slice(-4) : '001'}`,
-              category: p.category_name || (typeof p.category === 'string' ? p.category : ''),
-              subCategory: p.subCategory || '',
-              brand: typeof p.brand === 'string' ? p.brand : (p.brand_name || ''),
-              regularPrice: primaryRegPrice,
-              salePrice: primarySalePrice,
-              stock: p.stockQuantity || p.stock || 0,
-              isFeatured: p.isFeatured || false,
-              isNewArrival: p.isNewArrival || p.newArrival || false,
-              isBestSeller: p.isBestSeller || p.bestSeller || false,
-              images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'],
-              tags: p.tags || []
-            };
-          }));
-        }
-
-        // 4. Fetch recipes
-        let recipeRes = await getData('admin/recipes', queryParams);
-        let recipeList = recipeRes?.data?.recipes || (Array.isArray(recipeRes?.data) ? recipeRes.data : []);
-
-        if (Array.isArray(recipeList) && recipeList.length > 0) {
-          setRecipes(recipeList.map(r => ({
-            id: r._id || r.id,
-            title: r.title,
-            cookingTime: r.cookingTime || '15 mins',
-            nutrition: r.nutrition || '',
-            image: r.image || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=300',
-            linkedProducts: r.linkedProducts || []
-          })));
-        }
-      } catch (err) {
-        console.warn('Error fetching live databases, using defaults', err);
+        setCategories([...formattedCats, ...formattedSubs]);
+        fetchedFlags.current.categories = true;
       }
-    };
+    } catch (err) {
+      console.warn('Error fetching categories', err);
+    }
+  };
 
-    fetchRealData();
-  }, [initialCategories, initialBrands, initialProducts, initialRecipes]);
+  const fetchBrandsIfNeeded = async () => {
+    if (fetchedFlags.current.brands) return;
+    try {
+      const { getData } = await import('../services/api');
+      const queryParams = { limit: 100 };
+      let brandRes = await getData('admin/brands', queryParams);
+      let brandList = brandRes?.data?.brands || (Array.isArray(brandRes?.data) ? brandRes.data : []);
+
+      if (Array.isArray(brandList) && brandList.length > 0) {
+        setBrands(brandList.map(b => ({
+          id: b._id || b.id,
+          name: b.name,
+          logo: b.logo || 'https://images.unsplash.com/photo-1500937386664-56d159062255?auto=format&fit=crop&q=80&w=100'
+        })));
+        fetchedFlags.current.brands = true;
+      }
+    } catch (err) {
+      console.warn('Error fetching brands', err);
+    }
+  };
+
+  const fetchProductsIfNeeded = async () => {
+    if (fetchedFlags.current.products) return;
+    try {
+      const { getData } = await import('../services/api');
+      const queryParams = { limit: 100 };
+      let prodRes = await getData('admin/products', queryParams);
+      let prodList = prodRes?.data?.products || (Array.isArray(prodRes?.data) ? prodRes.data : []);
+
+      if (Array.isArray(prodList) && prodList.length > 0) {
+        setProducts(prodList.map(p => {
+          const rawVars = (Array.isArray(p.variations) && p.variations.length > 0)
+            ? p.variations
+            : ((Array.isArray(p.variants) && p.variants.length > 0) ? p.variants : []);
+          const parsedVars = rawVars.map((v, idx) => ({
+            id: v._id || v.id || `var-${idx + 1}`,
+            regularPrice: v.regularPrice !== undefined ? v.regularPrice : p.base_price || 0,
+            salePrice: v.salePrice !== undefined ? v.salePrice : p.discount_price || 0,
+            stock: v.stockQuantity !== undefined ? v.stockQuantity : (v.stock !== undefined ? v.stock : 0),
+          }));
+          const firstVariant = parsedVars[0] || {};
+          const primaryRegPrice = firstVariant.regularPrice !== undefined ? firstVariant.regularPrice : (p.base_price || 0);
+          const primarySalePrice = firstVariant.salePrice !== undefined ? firstVariant.salePrice : (p.discount_price || primaryRegPrice);
+
+          return {
+            id: p._id || p.id,
+            name: p.name || p.title,
+            sku: p.sku || `SKU-${p._id ? p._id.slice(-4) : '001'}`,
+            category: p.category_name || (typeof p.category === 'string' ? p.category : ''),
+            subCategory: p.subCategory || '',
+            brand: typeof p.brand === 'string' ? p.brand : (p.brand_name || ''),
+            regularPrice: primaryRegPrice,
+            salePrice: primarySalePrice,
+            stock: p.stockQuantity || p.stock || 0,
+            isFeatured: p.isFeatured || false,
+            isNewArrival: p.isNewArrival || p.newArrival || false,
+            isBestSeller: p.isBestSeller || p.bestSeller || false,
+            images: Array.isArray(p.images) && p.images.length > 0 ? p.images : ['https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=400'],
+            tags: p.tags || []
+          };
+        }));
+        fetchedFlags.current.products = true;
+      }
+    } catch (err) {
+      console.warn('Error fetching products', err);
+    }
+  };
+
+  const fetchRecipesIfNeeded = async () => {
+    if (fetchedFlags.current.recipes) return;
+    try {
+      const { getData } = await import('../services/api');
+      const queryParams = { limit: 100 };
+      let recipeRes = await getData('admin/recipes', queryParams);
+      let recipeList = recipeRes?.data?.recipes || (Array.isArray(recipeRes?.data) ? recipeRes.data : []);
+
+      if (Array.isArray(recipeList) && recipeList.length > 0) {
+        setRecipes(recipeList.map(r => ({
+          id: r._id || r.id,
+          title: r.title,
+          cookingTime: r.cookingTime || '15 mins',
+          nutrition: r.nutrition || '',
+          image: r.image || 'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&q=80&w=300',
+          linkedProducts: r.linkedProducts || []
+        })));
+        fetchedFlags.current.recipes = true;
+      }
+    } catch (err) {
+      console.warn('Error fetching recipes', err);
+    }
+  };
 
   // Find currently selected section
   const activeSection = useMemo(() => {
     return sections.find(s => s.id === selectedSectionId) || null;
   }, [sections, selectedSectionId]);
+
+  // Section properties checkers
+  const isProductSection = (type) => {
+    return [
+      'Today\'s Best Deals', 'Limited Products', 'Recommended Products', 'New Arrivals', 'Recently Viewed'
+    ].includes(type);
+  };
+
+  // Lazy load data based on active section or preview state
+  useEffect(() => {
+    const typesToFetch = new Set();
+
+    if (previewOpen) {
+      sections.filter(s => s.enabled).forEach(s => typesToFetch.add(s.sectionType));
+    } else if (activeSection) {
+      typesToFetch.add(activeSection.sectionType);
+    }
+
+    typesToFetch.forEach(type => {
+      if (type === 'Shop by Categories') {
+        fetchCategoriesIfNeeded();
+      }
+      if (type === 'Shop by Brands') {
+        fetchBrandsIfNeeded();
+      }
+      if (type === 'Popular Recipes') {
+        fetchRecipesIfNeeded();
+      }
+      if (isProductSection(type)) {
+        fetchProductsIfNeeded();
+
+        // Defensively fetch categories and brands if we are dealing with product filters 
+        // to populate the filter dropdowns in the UI
+        if (!activeSection || activeSection.dataSource !== 'Manual Selection') {
+          fetchCategoriesIfNeeded();
+          fetchBrandsIfNeeded();
+        }
+      }
+    });
+  }, [activeSection, previewOpen, sections]);
 
   // Handle reordering (Native HTML5 Drag & Drop)
   const handleDragStart = (e, index) => {
@@ -286,6 +353,31 @@ export const HomeConfiguration = ({
     }
   };
 
+  const handleSelectSection = async (id) => {
+    const draftIndex = sections.findIndex(s => s.isDraft);
+    if (draftIndex !== -1 && sections[draftIndex].id !== id) {
+      const withoutDraft = [...sections];
+      withoutDraft.splice(draftIndex, 1);
+      setSections(withoutDraft);
+    }
+    
+    setSelectedSectionId(id);
+    setCurrentPage(1);
+
+    if (id && !id.toString().startsWith('draft-')) {
+      try {
+        const { getHomeConfigById } = await import('../services/api');
+        const res = await getHomeConfigById(id);
+        if (res && res.success && res.data) {
+          const sectionData = res.data.section || res.data;
+          setSections(prev => prev.map(s => s.id === id ? { ...s, ...sectionData } : s));
+        }
+      } catch (err) {
+        console.error('Failed to fetch detailed section config', err);
+      }
+    }
+  };
+
   // Update specific active section field
   const handleUpdateActiveSection = (fields) => {
     setSections(sections.map(s => {
@@ -318,6 +410,96 @@ export const HomeConfiguration = ({
     handleUpdateActiveSection({ items: updated });
   };
 
+  // Save specific active section
+  const handleUpdateSingleSection = async () => {
+    if (!activeSection) return;
+    setSaving(true);
+    try {
+      const { updateHomeConfig } = await import('../services/api');
+      const payload = {
+        sectionType: activeSection.sectionType,
+        title: activeSection.title || '',
+        subtitle: activeSection.subtitle || '',
+        enabled: activeSection.enabled !== undefined ? activeSection.enabled : true,
+        displayOrder: activeSection.displayOrder || 1,
+        dataSource: activeSection.dataSource || 'Manual',
+        productLimit: activeSection.productLimit || 1,
+        filters: activeSection.filters || {},
+        buttonText: activeSection.buttonText || '',
+        buttonUrl: activeSection.buttonUrl || '',
+        highlightTitle: activeSection.highlightTitle || '',
+        description: activeSection.description || '',
+        primaryButtonText: activeSection.primaryButtonText || '',
+        primaryButtonUrl: activeSection.primaryButtonUrl || '',
+        secondaryButtonText: activeSection.secondaryButtonText || '',
+        secondaryButtonUrl: activeSection.secondaryButtonUrl || '',
+        isActive: activeSection.isActive !== undefined ? activeSection.isActive : (activeSection.enabled !== undefined ? activeSection.enabled : true),
+        settings: activeSection.settings || {},
+        items: activeSection.items || []
+      };
+      
+      let hasFile = false;
+      
+      // Add image fields to payload first
+      ['desktopImage', 'mobileImage', 'backgroundImage', 'iconImage', 'bannerImage'].forEach(imgKey => {
+        if (activeSection[imgKey]) {
+          if (activeSection[imgKey] instanceof File) {
+             hasFile = true;
+          } else {
+             payload[imgKey] = activeSection[imgKey];
+          }
+        } else {
+           payload[imgKey] = '';
+        }
+      });
+
+      const formData = new FormData();
+      Object.keys(payload).forEach(key => {
+        if (typeof payload[key] === 'object' && !(payload[key] instanceof File)) {
+          formData.append(key, JSON.stringify(payload[key]));
+        } else {
+          formData.append(key, payload[key]);
+        }
+      });
+      
+      // Append actual files to formData
+      if (hasFile) {
+        ['desktopImage', 'mobileImage', 'backgroundImage', 'iconImage', 'bannerImage'].forEach(imgKey => {
+          if (activeSection[imgKey] instanceof File) {
+             formData.append(imgKey, activeSection[imgKey]);
+          }
+        });
+      }
+
+      let updatedSections = [...sections];
+
+      if (activeSection.isDraft) {
+        const { createHomeConfig } = await import('../services/api');
+        const res = await createHomeConfig(hasFile ? formData : payload);
+        if (res && res.success && res.data) {
+          const sectionData = res.data.section || res.data;
+          const newId = sectionData.id || sectionData._id || generateUniqueId('sec');
+          updatedSections = updatedSections.map(s => s.id === activeSection.id ? { ...s, ...sectionData, id: newId, isDraft: false } : s);
+          setSelectedSectionId(newId);
+        } else {
+          updatedSections = updatedSections.map(s => s.id === activeSection.id ? { ...s, isDraft: false } : s);
+        }
+      } else {
+        await updateHomeConfig(activeSection.id, hasFile ? formData : payload);
+      }
+
+      const updatedCMS = { ...cmsData, homeSections: updatedSections };
+      setSections(updatedSections);
+      setCmsData(updatedCMS);
+      addToast('Section saved successfully', 'success');
+    } catch (err) {
+      console.error('Update single section error:', err);
+      addToast('Error saving to server, saved locally', 'warning');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Save all sections to the backend/cmsData state
   const handlePublish = async () => {
     setSaving(true);
@@ -325,7 +507,7 @@ export const HomeConfiguration = ({
       const { reorderHomeConfigs, updateHomeConfig } = await import('../services/api');
 
       // 1. Save reordering bulk index
-      const orderPayload = sections.map(s => ({ id: s.id, displayOrder: s.displayOrder }));
+      const orderPayload = sections.map((s, idx) => ({ id: s.id, displayOrder: idx + 1 }));
       await reorderHomeConfigs(orderPayload);
 
       // 2. Put single updates for all sections (or save globally in state)
@@ -338,20 +520,56 @@ export const HomeConfiguration = ({
 
       // Try bulk-syncing with endpoints (simulated promise matches)
       await Promise.all(
-        sections.map(sec =>
-          updateHomeConfig(sec.id, {
+        sections.map(sec => {
+          const payload = {
             sectionType: sec.sectionType,
             title: sec.title || '',
             subtitle: sec.subtitle || '',
-            enabled: sec.enabled,
-            displayOrder: sec.displayOrder,
+            enabled: sec.enabled !== undefined ? sec.enabled : true,
+            displayOrder: sec.displayOrder || 1,
             dataSource: sec.dataSource || 'Manual',
             productLimit: sec.productLimit || 1,
             filters: sec.filters || {},
             buttonText: sec.buttonText || '',
-            buttonUrl: sec.buttonUrl || ''
-          }).catch(() => null) // Allow soft failure if endpoints are partially live
-        )
+            buttonUrl: sec.buttonUrl || '',
+            highlightTitle: sec.highlightTitle || '',
+            description: sec.description || '',
+            primaryButtonText: sec.primaryButtonText || '',
+            primaryButtonUrl: sec.primaryButtonUrl || '',
+            secondaryButtonText: sec.secondaryButtonText || '',
+            secondaryButtonUrl: sec.secondaryButtonUrl || '',
+            isActive: sec.isActive !== undefined ? sec.isActive : (sec.enabled !== undefined ? sec.enabled : true),
+            settings: sec.settings || {},
+            items: sec.items || []
+          };
+          
+          let hasFile = false;
+          const formData = new FormData();
+          Object.keys(payload).forEach(key => {
+            if (typeof payload[key] === 'object' && !(payload[key] instanceof File)) {
+              formData.append(key, JSON.stringify(payload[key]));
+            } else {
+              formData.append(key, payload[key]);
+            }
+          });
+          
+          // Handle images
+          ['desktopImage', 'mobileImage', 'backgroundImage', 'iconImage', 'bannerImage'].forEach(imgKey => {
+            if (sec[imgKey]) {
+              if (sec[imgKey] instanceof File) {
+                 hasFile = true;
+                 formData.append(imgKey, sec[imgKey]);
+              } else {
+                 payload[imgKey] = sec[imgKey];
+                 formData.append(imgKey, sec[imgKey]);
+              }
+            } else {
+               payload[imgKey] = '';
+            }
+          });
+
+          return updateHomeConfig(sec.id, hasFile ? formData : payload).catch(() => null);
+        })
       );
 
       addToast('Homepage Layout published successfully to web storefront!', 'success');
@@ -372,82 +590,6 @@ export const HomeConfiguration = ({
       addToast('Error synchronizing layout with server. Saved locally.', 'warning');
       const updatedCMS = { ...cmsData, homeSections: sections };
       setCmsData(updatedCMS);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Create section via POST API
-  const handleCreateSection = async (e) => {
-    e.preventDefault();
-    if (!newSectionType) {
-      addToast('Section Type is required', 'danger');
-      return;
-    }
-    setSaving(true);
-    try {
-      const { createHomeConfig } = await import('../services/api');
-      const payload = {
-        sectionType: newSectionType,
-        title: newSectionTitle || '',
-        subtitle: newSectionSubtitle || '',
-        enabled: true,
-        displayOrder: sections.length,
-        dataSource: isProductSection(newSectionType) ? newSectionDataSource : 'Manual',
-        productLimit: isProductSection(newSectionType) ? Number(newSectionProductLimit) || 8 : 1,
-        filters: {},
-        buttonText: newSectionButtonText || '',
-        buttonUrl: newSectionButtonUrl || ''
-      };
-
-      const res = await createHomeConfig(payload);
-      if (res && res.success && res.data) {
-        const created = {
-          ...payload,          // our defaults (enabled: true, etc.)
-          ...res.data,         // API-returned fields (id, timestamps, etc.)
-          id: res.data.id || res.data._id || generateUniqueId('sec'),
-          enabled: true,       // always start enabled regardless of API response
-          items: res.data.items || []
-        };
-        const newSectionsList = [...sections, created];
-        setSections(newSectionsList);
-        setSelectedSectionId(created.id);
-        addToast('New homepage section created successfully!', 'success');
-      } else {
-        const localCreated = {
-          id: generateUniqueId('sec'),
-          ...payload,
-          items: []
-        };
-        const newSectionsList = [...sections, localCreated];
-        setSections(newSectionsList);
-        setSelectedSectionId(localCreated.id);
-        addToast('New homepage section created locally.', 'success');
-      }
-
-      setNewSectionTitle('');
-      setNewSectionSubtitle('');
-      setNewSectionType('Hero Banner');
-      setNewSectionDataSource('Manual');
-      setNewSectionProductLimit(8);
-      setNewSectionButtonText('');
-      setNewSectionButtonUrl('');
-      setCreateModalOpen(false);
-
-      setAuditLogs([
-        {
-          id: generateUniqueId('log'),
-          timestamp: new Date().toISOString(),
-          user: 'Mugesh',
-          action: 'Homepage Section Created',
-          module: 'Home Config',
-          detail: `Created new homepage section of type: ${newSectionType}`
-        },
-        ...auditLogs
-      ]);
-    } catch (err) {
-      console.error('Create section error:', err);
-      addToast('Error creating new homepage section.', 'danger');
     } finally {
       setSaving(false);
     }
@@ -546,12 +688,7 @@ export const HomeConfiguration = ({
     return filtered.slice(0, limit);
   };
 
-  // Section properties checkers
-  const isProductSection = (type) => {
-    return [
-      'Today\'s Best Deals', 'Limited Products', 'Recommended Products', 'New Arrivals', 'Recently Viewed'
-    ].includes(type);
-  };
+
 
   const hasLimitField = (type) => {
     return [
@@ -621,7 +758,7 @@ export const HomeConfiguration = ({
       {loading ? (
         <div className="skeleton" style={{ height: '350px', borderRadius: 'var(--radius-lg)' }} />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr', gap: '24px', alignItems: 'flex-start' }} className="responsive-split">
+        <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '24px', alignItems: 'flex-start' }} className="responsive-split">
 
           {/* ── LEFT PANEL: SECTIONS LIST & DRAG-DROP ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -657,7 +794,7 @@ export const HomeConfiguration = ({
                       onDragStart={(e) => handleDragStart(e, idx)}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, idx)}
-                      onClick={() => { setSelectedSectionId(sec.id); setCurrentPage(1); }}
+                      onClick={() => handleSelectSection(sec.id)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -863,7 +1000,7 @@ export const HomeConfiguration = ({
                           <Input label="Offer Badge" value={activeSection.offerBadge || ''} onChange={(e) => handleUpdateActiveSection({ offerBadge: e.target.value })} />
                           <Input label="Offer Text" value={activeSection.offerText || ''} onChange={(e) => handleUpdateActiveSection({ offerText: e.target.value })} />
                         </div>
-                        <Uploader label="Images" maxFiles={3} initialImages={activeSection.images || []} onFilesChanged={(urls) => handleUpdateActiveSection({ images: urls })} />
+                        <Uploader label="Background Image" maxFiles={1} initialImages={[activeSection.backgroundImage || ''].filter(Boolean)} onFilesChanged={(urls) => handleUpdateActiveSection({ backgroundImage: urls[0] || '' })} />
                       </>
                     )}
 
@@ -1397,6 +1534,15 @@ export const HomeConfiguration = ({
                       </div>
                     </div>
                   )}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                  <button
+                    onClick={handleUpdateSingleSection}
+                    style={{ backgroundColor: 'var(--primary)', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                    disabled={saving}
+                  >
+                    {saving ? <span style={{ opacity: 0.7 }}>Saving...</span> : <><span>💾</span><span>Save Section</span></>}
+                  </button>
                 </div>
               </Card>
             ) : (
@@ -1982,81 +2128,50 @@ export const HomeConfiguration = ({
       <Modal
         isOpen={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
-        title="Add Homepage Section"
-        footer={
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <Button variant="outline" size="sm" onClick={() => setCreateModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleCreateSection} disabled={saving}>
-              {saving ? 'Creating...' : 'Create Section'}
-            </Button>
-          </div>
-        }
+        title="Choose a Section Type"
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <Select
-            label="Section Type"
-            value={newSectionType}
-            onChange={(e) => {
-              setNewSectionType(e.target.value);
-              setNewSectionTitle(e.target.value);
-            }}
-            options={sectionTypesList}
-          />
-
-          <Input
-            label="Title"
-            placeholder="e.g. Best Deals of the Week"
-            value={newSectionTitle}
-            onChange={(e) => setNewSectionTitle(e.target.value)}
-          />
-
-          <Input
-            label="Subtitle"
-            placeholder="e.g. Super fresh and discounted organic items"
-            value={newSectionSubtitle}
-            onChange={(e) => setNewSectionSubtitle(e.target.value)}
-          />
-
-          {isProductSection(newSectionType) && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Select
-                label="Data Source"
-                value={newSectionDataSource}
-                onChange={(e) => setNewSectionDataSource(e.target.value)}
-                options={[
-                  'Featured Products',
-                  'Latest Products',
-                  'Manual Selection',
-                  'Category Based',
-                  'Brand Based',
-                  'Offer Products'
-                ]}
-              />
-              <Input
-                label="Product Limit"
-                type="number"
-                value={newSectionProductLimit}
-                onChange={(e) => setNewSectionProductLimit(e.target.value)}
-              />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '10px' }}>
+          {sectionTypesList.map(type => (
+            <div 
+              key={type}
+              onClick={() => {
+                const draftId = `draft-${Date.now()}`;
+                const payload = {
+                  id: draftId,
+                  sectionType: type,
+                  title: type,
+                  enabled: true,
+                  displayOrder: sections.length + 1,
+                  dataSource: isProductSection(type) ? 'Manual Selection' : 'Manual',
+                  productLimit: isProductSection(type) ? 8 : 1,
+                  filters: {},
+                  items: [],
+                  isDraft: true
+                };
+                setSections([...sections, payload]);
+                setSelectedSectionId(draftId);
+                setCreateModalOpen(false);
+              }}
+              style={{
+                border: '1.5px solid var(--border-color)',
+                borderRadius: 'var(--radius-md)',
+                padding: '24px 20px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                transition: 'all 0.2s',
+                backgroundColor: 'var(--bg-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'var(--primary-light)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.backgroundColor = 'var(--bg-card)'; }}
+            >
+              <div style={{ fontSize: '28px' }}>{type.includes('Product') || type.includes('Deals') || type.includes('Arrival') ? '🛍️' : type.includes('Categories') ? '📂' : type.includes('Brand') ? '🏷️' : '🖼️'}</div>
+              <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '14px' }}>{type}</div>
             </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <Input
-              label="Redirect Button Text"
-              placeholder="e.g. View All"
-              value={newSectionButtonText}
-              onChange={(e) => setNewSectionButtonText(e.target.value)}
-            />
-            <Input
-              label="Redirect URL"
-              placeholder="e.g. /offers"
-              value={newSectionButtonUrl}
-              onChange={(e) => setNewSectionButtonUrl(e.target.value)}
-            />
-          </div>
+          ))}
         </div>
       </Modal>
 

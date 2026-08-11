@@ -36,6 +36,7 @@ const AVAILABLE_PERMISSIONS = [
   { key: 'manage_notifications', label: 'Manage Push Notifications' },
   { key: 'manage_deliveries', label: 'Manage Deliveries' },
   { key: 'manage_cms', label: 'Manage CMS & Home Config' },
+  { key: 'manage_banners', label: 'Manage Website Banners' },
   { key: 'manage_blogs', label: 'Manage Blog Posts' },
   { key: 'manage_testimonials', label: 'Manage Customer Testimonials' },
   { key: 'manage_recipes', label: 'Manage Recipes' },

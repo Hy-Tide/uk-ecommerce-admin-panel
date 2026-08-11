@@ -907,6 +907,42 @@ export const deleteOfferProduct = async (id, productId) => {
 };
 
 
+// ─── Banners API Endpoints ───────────────────────────────────────────────────
+export const fetchBanners = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.search) queryParams.append('search', params.search);
+  if (params.page) queryParams.append('page', params.page);
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.status) queryParams.append('status', params.status);
+  if (params.pageType) queryParams.append('pageType', params.pageType);
+
+  const route = `admin/banners${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await getData(route);
+};
+
+export const getBannerById = async (id) => {
+  return await getData(`admin/banners/${id}`);
+};
+
+export const createBanner = async (bannerData) => {
+  if (bannerData instanceof FormData) {
+    return await uploadFile('admin/banners', bannerData, null, 'POST');
+  }
+  return await postData('admin/banners', bannerData);
+};
+
+export const updateBanner = async (id, bannerData) => {
+  if (bannerData instanceof FormData) {
+    return await uploadFile(`admin/banners/${id}`, bannerData, null, 'PUT');
+  }
+  return await putData(`admin/banners/${id}`, bannerData);
+};
+
+export const deleteBanner = async (id) => {
+  return await deleteData(`admin/banners/${id}`);
+};
+
+
 // ─── Enquiries API Endpoints ──────────────────────────────────────────────────
 export const fetchEnquiries = async (params = {}) => {
   const queryParams = new URLSearchParams();
@@ -1219,8 +1255,47 @@ export const fetchDashboardData = async () => {
   };
 };
 
-export { getData, postData, putData, patchData, deleteData, uploadFile };
+// ─── Home Config API Endpoints ──────────────────────────────────────────────
+export const fetchHomeConfigs = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.search) queryParams.append('search', params.search);
+  if (params.status) queryParams.append('status', params.status);
+  
+  const route = `admin/home-config${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await getData(route);
+};
 
+export const getHomeConfigById = async (id) => {
+  return await getData(`admin/home-config/${id}`);
+};
+
+export const createHomeConfig = async (configData) => {
+  if (configData instanceof FormData) {
+    return await uploadFile('admin/home-config', configData, null, 'POST');
+  }
+  return await postData('admin/home-config', configData);
+};
+
+export const updateHomeConfig = async (id, configData) => {
+  if (configData instanceof FormData) {
+    return await uploadFile(`admin/home-config/${id}`, configData, null, 'PUT');
+  }
+  return await putData(`admin/home-config/${id}`, configData);
+};
+
+export const deleteHomeConfig = async (id) => {
+  return await deleteData(`admin/home-config/${id}`);
+};
+
+export const toggleHomeConfigStatus = async (id, enabled) => {
+  return await patchData(`admin/home-config/${id}/toggle`, { enabled });
+};
+
+export const reorderHomeConfigs = async (items) => {
+  return await putData('admin/home-config/reorder', { items });
+};
+
+export { getData, postData, putData, patchData, deleteData, uploadFile };
 
 
 

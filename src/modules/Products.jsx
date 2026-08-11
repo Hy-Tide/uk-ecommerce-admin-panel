@@ -397,7 +397,7 @@ export const Products = ({
   const [liveSubCategories, setLiveSubCategories] = useState([]);
   const [liveBrands, setLiveBrands] = useState([]);
   const [isFetchingProds, setIsFetchingProds] = useState(true);
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
