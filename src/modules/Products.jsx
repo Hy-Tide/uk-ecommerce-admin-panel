@@ -402,7 +402,7 @@ export const Products = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(100);
 
   // Fetch live Categories, Subcategories, Brands & Products
   useEffect(() => {
@@ -1098,6 +1098,7 @@ export const Products = ({
           onServerPageChange={setCurrentPage}
           onServerRowsChange={setLimit}
           initialRowsPerPage={limit}
+          rowsPerPageOptions={[10, 25, 50, 100]}
         />
       ) : (
         <GridView
@@ -1109,7 +1110,8 @@ export const Products = ({
           statusKey="status"
           onEdit={openEditDrawer}
           onDelete={item => deleteProduct(item.id)}
-          initialRowsPerPage={8}
+          initialRowsPerPage={100}
+          rowsPerPageOptions={[8, 16, 32, 64, 100]}
         />
       )}
 
