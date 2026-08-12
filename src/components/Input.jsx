@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 // Normal Text/Number/Date Input
 export const Input = ({
@@ -198,6 +198,134 @@ export const Select = ({
   );
 };
 
+// Scrollable Dropdown / Select
+export const ScrollableSelect = ({
+  label,
+  value,
+  onChange,
+  options = [], // [{ value: 'x', label: 'X' }] or ['A', 'B']
+  disabled = false,
+  error = '',
+  className = '',
+  id,
+  onScrollEnd,
+  isLoading = false,
+  ...props
+}) => {
+  const selectId = id || `scroll-select-${Math.random().toString(36).substr(2, 9)}`;
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleScroll = (e) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.target;
+    if (scrollHeight - scrollTop <= clientHeight + 20) {
+      if (onScrollEnd && !isLoading) {
+        onScrollEnd();
+      }
+    }
+  };
+
+  const displayValue = options.find(opt => (typeof opt === 'object' ? opt.value : opt) === value) || value;
+  const displayLabel = typeof displayValue === 'object' ? displayValue.label : displayValue;
+
+  return (
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', position: 'relative' }} className={className}>
+      {label && (
+        <label
+          htmlFor={selectId}
+          style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}
+        >
+          {label}
+        </label>
+      )}
+      <div
+        id={selectId}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          padding: '10px 12px',
+          fontSize: '14px',
+          color: 'var(--text-primary)',
+          backgroundColor: 'var(--bg-input)',
+          border: `1px solid ${error ? 'var(--danger)' : 'var(--border-color)'}`,
+          borderRadius: '8px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          userSelect: 'none'
+        }}
+        {...props}
+      >
+        <span>{displayLabel || 'Select...'}</span>
+        <span style={{ fontSize: '10px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▼</span>
+      </div>
+      
+      {isOpen && (
+        <ul
+          onScroll={handleScroll}
+          style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            maxHeight: '200px',
+            overflowY: 'auto',
+            backgroundColor: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            marginTop: '4px',
+            padding: '4px 0',
+            listStyle: 'none',
+            zIndex: 1000,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+        >
+          {options.map((opt, i) => {
+            const val = typeof opt === 'object' ? opt.value : opt;
+            const lbl = typeof opt === 'object' ? opt.label : opt;
+            return (
+              <li
+                key={i}
+                onClick={() => {
+                  onChange({ target: { value: val } });
+                  setIsOpen(false);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  backgroundColor: value === val ? 'var(--primary-light)' : 'transparent',
+                  color: 'var(--text-primary)'
+                }}
+                onMouseEnter={(e) => {
+                  if (value !== val) e.target.style.backgroundColor = 'var(--bg-hover)';
+                }}
+                onMouseLeave={(e) => {
+                  if (value !== val) e.target.style.backgroundColor = 'transparent';
+                }}
+              >
+                {lbl}
+              </li>
+            );
+          })}
+          {isLoading && <li style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>Loading...</li>}
+          {!isLoading && options.length === 0 && <li style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--text-secondary)' }}>No options</li>}
+        </ul>
+      )}
+      {error && <span style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '2px' }}>{error}</span>}
+    </div>
+  );
+};
 // Checkbox
 export const Checkbox = ({
   label,

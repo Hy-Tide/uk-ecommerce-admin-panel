@@ -21,6 +21,10 @@ export const Inventory = ({
   const [stockStatusFilter, setStockStatusFilter] = useState('all');
   const [adjustmentModal, setAdjustmentModal] = useState(false);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Adjustment Form States
   const [selectedProdId, setSelectedProdId] = useState('');
   const [adjustQty, setAdjustQty] = useState(0);
@@ -36,7 +40,7 @@ export const Inventory = ({
   const loadLiveInventory = async () => {
     setLoading(true);
     try {
-      const params = { limit: 100 };
+      const params = { limit, page };
       if (searchTerm.trim()) params.search = searchTerm.trim();
       if (stockStatusFilter !== 'all') params.stockStatus = stockStatusFilter;
 
@@ -59,6 +63,14 @@ export const Inventory = ({
             updatedAt: item.updatedAt || new Date().toISOString()
           }));
           setLiveInventory(formatted);
+          if (res.data?.meta?.total) {
+            setTotalItems(res.data.meta.total);
+          } else {
+            setTotalItems(formatted.length);
+          }
+        } else {
+          setLiveInventory([]);
+          setTotalItems(0);
         }
       }
     } catch (err) {
@@ -70,6 +82,10 @@ export const Inventory = ({
 
   useEffect(() => {
     loadLiveInventory();
+  }, [searchTerm, stockStatusFilter, page, limit]);
+
+  useEffect(() => {
+    setPage(1);
   }, [searchTerm, stockStatusFilter]);
 
   // Fallback to local products array if liveInventory is empty
@@ -271,15 +287,16 @@ export const Inventory = ({
             />
           </div>
         </div>
-        {loading ? (
-          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading inventory data...</div>
-        ) : (
-          <Table
-            columns={inventoryColumns}
-            data={activeInventoryList}
-            initialRowsPerPage={10}
-          />
-        )}
+        <Table
+          columns={inventoryColumns}
+          data={activeInventoryList}
+          initialRowsPerPage={limit}
+          serverSideTotal={totalItems}
+          serverSidePage={page}
+          onServerPageChange={setPage}
+          onServerRowsChange={setLimit}
+          loading={loading}
+        />
       </Card>
 
       {/* Low Stock Alerts and Movements log grid split */}

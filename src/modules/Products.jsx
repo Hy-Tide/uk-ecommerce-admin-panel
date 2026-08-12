@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { Edit3, Plus, Search, Trash2, Filter, FileSpreadsheet, Layers, Sliders, Settings, Video, Upload, Link, AlertCircle, AlertTriangle, ImageOff, Tag, X, Star, Flame, Award, Eye, CheckCircle2 } from 'lucide-react';
 import Button from '../components/Button';
 import Drawer from '../components/Drawer';
-import Input, { Select, Textarea, Checkbox } from '../components/Input';
+import Input, { Select, ScrollableSelect, Textarea, Checkbox } from '../components/Input';
 import Table from '../components/Table';
 import ListView from '../components/ListView';
 import GridView from '../components/GridView';
@@ -402,14 +402,106 @@ export const Products = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [limit, setLimit] = useState(100);
+  const [limit, setLimit] = useState(10);
+
+  const [catPage, setCatPage] = useState(1);
+  const [loadingCats, setLoadingCats] = useState(false);
+  const [hasMoreCats, setHasMoreCats] = useState(true);
+
+  const [subCatPage, setSubCatPage] = useState(1);
+  const [loadingSubCats, setLoadingSubCats] = useState(false);
+  const [hasMoreSubCats, setHasMoreSubCats] = useState(true);
+
+  const [brandPage, setBrandPage] = useState(1);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [hasMoreBrands, setHasMoreBrands] = useState(true);
+
+  const fetchMoreCategories = async () => {
+    if (loadingCats || !hasMoreCats) return;
+    setLoadingCats(true);
+    const nextPage = catPage + 1;
+    try {
+      const params = { limit: 10, page: nextPage };
+      let res = await getData('admin/categories', params);
+      let list = res?.data?.categories || (Array.isArray(res?.data) ? res.data : []);
+      if (!Array.isArray(list) || list.length === 0) {
+        res = await getData('website/categories', params);
+        list = res?.data?.categories || (Array.isArray(res?.data) ? res.data : []);
+      }
+      if (Array.isArray(list) && list.length > 0) {
+        const formatted = list.map(c => ({ id: c._id || c.id, _id: c._id || c.id, name: c.name }));
+        setLiveCategories(prev => {
+          const newItems = formatted.filter(f => !prev.some(p => p.id === f.id));
+          return [...prev, ...newItems];
+        });
+        setCatPage(nextPage);
+        if (list.length < 10) setHasMoreCats(false);
+      } else {
+        setHasMoreCats(false);
+      }
+    } catch (err) {} finally {
+      setLoadingCats(false);
+    }
+  };
+
+  const fetchMoreSubCategories = async () => {
+    if (loadingSubCats || !hasMoreSubCats) return;
+    setLoadingSubCats(true);
+    const nextPage = subCatPage + 1;
+    try {
+      const params = { limit: 10, page: nextPage };
+      let res = await getData('admin/subcategories', params);
+      let list = res?.data?.subCategories || res?.data?.subcategories || (Array.isArray(res?.data) ? res.data : []);
+      if (Array.isArray(list) && list.length > 0) {
+        const formatted = list.map(s => ({ id: s._id || s.id, _id: s._id || s.id, name: s.name, category_id: s.category_id }));
+        setLiveSubCategories(prev => {
+          const newItems = formatted.filter(f => !prev.some(p => p.id === f.id));
+          return [...prev, ...newItems];
+        });
+        setSubCatPage(nextPage);
+        if (list.length < 10) setHasMoreSubCats(false);
+      } else {
+        setHasMoreSubCats(false);
+      }
+    } catch (err) {} finally {
+      setLoadingSubCats(false);
+    }
+  };
+
+  const fetchMoreBrands = async () => {
+    if (loadingBrands || !hasMoreBrands) return;
+    setLoadingBrands(true);
+    const nextPage = brandPage + 1;
+    try {
+      const params = { limit: 10, page: nextPage };
+      let res = await getData('admin/brands', params);
+      let list = res?.data?.brands || (Array.isArray(res?.data) ? res.data : []);
+      if (!Array.isArray(list) || list.length === 0) {
+        res = await getData('website/brands', params);
+        list = res?.data?.brands || (Array.isArray(res?.data) ? res.data : []);
+      }
+      if (Array.isArray(list) && list.length > 0) {
+        const formatted = list.map(b => ({ id: b._id || b.id, _id: b._id || b.id, name: b.name }));
+        setLiveBrands(prev => {
+          const newItems = formatted.filter(f => !prev.some(p => p.id === f.id));
+          return [...prev, ...newItems];
+        });
+        setBrandPage(nextPage);
+        if (list.length < 10) setHasMoreBrands(false);
+      } else {
+        setHasMoreBrands(false);
+      }
+    } catch (err) {} finally {
+      setLoadingBrands(false);
+    }
+  };
 
   // Fetch live Categories, Subcategories, Brands & Products
   useEffect(() => {
     const fetchAllLiveData = async () => {
       setIsFetchingProds(true);
       try {
-        const dropdownParams = { limit: 100 };
+        const dropdownParams = { limit: 10, page: 1 };
         const productParams = { limit: limit, page: currentPage };
 
         // 1. Fetch live categories
@@ -1139,7 +1231,7 @@ export const Products = ({
 
           {/* Category, Sub Category & Brand Partner dropdowns loaded from live backend database */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
-            <Select
+            <ScrollableSelect
               label="Category"
               value={formCategory || (liveCategories[0]?.name || categories[0]?.name || '')}
               onChange={(e) => {
@@ -1147,18 +1239,24 @@ export const Products = ({
                 setFormSubCategory('');
               }}
               options={(liveCategories.length > 0 ? liveCategories : categories).map(c => c.name)}
+              onScrollEnd={fetchMoreCategories}
+              isLoading={loadingCats}
             />
-            <Select
+            <ScrollableSelect
               label="Sub Category *"
               value={formSubCategory}
               onChange={(e) => setFormSubCategory(e.target.value)}
               options={['', ...liveSubCategories.map(s => s.name)]}
+              onScrollEnd={fetchMoreSubCategories}
+              isLoading={loadingSubCats}
             />
-            <Select
+            <ScrollableSelect
               label="Brand Partner"
               value={formBrand || (liveBrands[0]?.name || brands[0]?.name || '')}
               onChange={(e) => setFormBrand(e.target.value)}
               options={(liveBrands.length > 0 ? liveBrands : brands).map(b => b.name)}
+              onScrollEnd={fetchMoreBrands}
+              isLoading={loadingBrands}
             />
           </div>
 

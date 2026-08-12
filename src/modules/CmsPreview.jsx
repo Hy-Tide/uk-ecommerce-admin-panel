@@ -127,6 +127,11 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
         {/* ═══ ENABLED SECTIONS ═══ */}
         {sections.filter(s => s.enabled).map((sec) => {
           const sType = sec.sectionType;
+          const isProductSection = (type) => [
+            'Today\'s Best Deals', 'Best Deals', 'Limited Products', 
+            'Recommended Products', 'New Arrivals', 'Recently Viewed', 
+            'Featured Products', 'Trending Products'
+          ].includes(type);
           const previewProds = getPreviewProductsForSection(sec);
 
           return (
@@ -139,10 +144,10 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                   <div style={{ position: 'relative', minHeight: '320px', backgroundColor: '#1a2e1a', backgroundImage: bgImg ? `url(${bgImg})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center right', display: 'flex', alignItems: 'center' }}>
                     <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(20,40,20,0.90) 0%, rgba(20,40,20,0.60) 45%, rgba(20,40,20,0.05) 80%)' }} />
                     <div style={{ position: 'relative', zIndex: 1, padding: '48px 40px', maxWidth: '520px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {(sec.offerBadge || sec.offerText) && (
+                      {(sec.highlightTitle || sec.offerBadge || sec.offerText) && (
                         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', backgroundColor: 'rgba(22,163,74,0.25)', border: '1px solid rgba(22,163,74,0.5)', color: '#86efac', fontSize: '11px', fontWeight: '700', padding: '5px 12px', borderRadius: '20px', alignSelf: 'flex-start' }}>
                           <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#4ade80', display: 'inline-block' }} />
-                          {sec.offerBadge || sec.offerText}
+                          {sec.highlightTitle || sec.offerBadge || sec.offerText}
                         </div>
                       )}
                       <div>
@@ -177,15 +182,15 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                 );
               })()}
 
-              {/* FEATURE HIGHLIGHTS */}
-              {sType === 'Feature Highlights' && (
+              {/* FEATURE HIGHLIGHTS / SERVICE FEATURES */}
+              {sType === 'Service Features' && (
                 <div style={{ backgroundColor: '#fff', borderBottom: '1px solid #f1f5f9', padding: '18px 28px' }}>
-                  {sec.customContent?.length > 0 ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(sec.customContent.length, 4)}, 1fr)`, gap: '0', borderTop: '1px solid #f1f5f9', borderLeft: '1px solid #f1f5f9' }}>
-                      {sec.customContent.slice(0, 4).map((feat, i) => (
+                  {sec.items?.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(sec.items.length, 4)}, 1fr)`, gap: '0', borderTop: '1px solid #f1f5f9', borderLeft: '1px solid #f1f5f9' }}>
+                      {sec.items.slice(0, 4).map((feat, i) => (
                         <div key={feat.id || i} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '18px 20px', borderRight: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
                           <div style={{ width: '44px', height: '44px', borderRadius: '12px', backgroundColor: feat.iconBg || '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                            {feat.icon || '✅'}
+                            {feat.iconImage || feat.icon || '✅'}
                           </div>
                           <div>
                             <div style={{ fontSize: '12.5px', fontWeight: '700', color: '#111827' }}>{feat.title}</div>
@@ -203,8 +208,8 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
               )}
 
               {/* PROMOTIONAL BANNER GRID */}
-              {sType === 'Promotional Banner Grid' && (() => {
-                const items = sec.customContent || [];
+              {sType === 'Offer Banners' && (() => {
+                const items = sec.items || sec.customContent || [];
                 if (items.length === 0) return (
                   <div style={{ padding: '20px 24px', backgroundColor: '#f3f4f6' }}>
                     <div style={{ padding: '32px', textAlign: 'center', color: '#9ca3af', fontSize: '12px', border: '1.5px dashed #e5e7eb', borderRadius: '12px', backgroundColor: '#fff' }}>
@@ -262,11 +267,11 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                 );
               })()}
 
-              {/* CATEGORIES */}
-              {sType === 'Categories' && (() => {
+              {/* SHOP BY CATEGORIES */}
+              {sType === 'Shop by Categories' && (() => {
                 const CAT_COLORS = ['#3d6b2e', '#6b3d7c', '#1e6b5e', '#6b4e1e', '#7c1f1f', '#1e3d6b', '#2d5a3d'];
-                const catList = (categories.filter(c => (sec.items || []).includes(c.id)).length > 0
-                  ? categories.filter(c => (sec.items || []).includes(c.id))
+                const catList = (categories.filter(c => (sec.categoryIds || sec.items || []).includes(c.id)).length > 0
+                  ? categories.filter(c => (sec.categoryIds || sec.items || []).includes(c.id))
                   : categories
                 ).slice(0, sec.productLimit || 7);
                 return (
@@ -394,7 +399,7 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
               })()}
 
               {/* BRANDS */}
-              {sType === 'Brands' && (
+              {sType === 'Shop by Brands' && (
                 <div style={{ padding: '28px 28px 32px', backgroundColor: '#f9fafb' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
                     <div>
@@ -408,8 +413,8 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                     {sec.buttonText && <a style={{ fontSize: '12.5px', color: '#16a34a', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', borderBottom: '1.5px solid #16a34a', paddingBottom: '2px' }}>{sec.buttonText} →</a>}
                   </div>
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    {(brands.filter(b => (sec.items || []).includes(b.id)).length > 0
-                      ? brands.filter(b => (sec.items || []).includes(b.id))
+                    {(brands.filter(b => (sec.brandIds || sec.items || []).includes(b.id)).length > 0
+                      ? brands.filter(b => (sec.brandIds || sec.items || []).includes(b.id))
                       : brands
                     ).slice(0, sec.productLimit || 8).map(brand => (
                       <div key={brand.id} style={{ height: '56px', minWidth: '110px', border: '1px solid #e5e7eb', borderRadius: '10px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 18px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
@@ -435,13 +440,13 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
               )}
 
               {/* RECIPES */}
-              {sType === 'Recipes' && (
+              {sType === 'Popular Recipes' && (
                 <div style={{ padding: '28px 28px 32px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                         <div style={{ width: '20px', height: '2.5px', backgroundColor: '#16a34a', borderRadius: '2px' }} />
-                        <span style={{ fontSize: '10px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>CHEF'S PICKS</span>
+                        <span style={{ fontSize: '10px', fontWeight: '800', color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{sec.highlightTitle || "CHEF'S PICKS"}</span>
                       </div>
                       <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '900', color: '#111827', letterSpacing: '-0.02em' }}>{sec.title || 'Recipe Ideas'}</h2>
                       {sec.subtitle && <p style={{ margin: '5px 0 0', fontSize: '12px', color: '#6b7280' }}>{sec.subtitle}</p>}
@@ -449,8 +454,8 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                     {sec.buttonText && <a style={{ fontSize: '12.5px', color: '#16a34a', fontWeight: '700', cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', borderBottom: '1.5px solid #16a34a', paddingBottom: '2px' }}>{sec.buttonText} →</a>}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-                    {(recipes.filter(r => (sec.items || []).includes(r.id)).length > 0
-                      ? recipes.filter(r => (sec.items || []).includes(r.id))
+                    {(recipes.filter(r => (sec.recipeIds || sec.items || []).includes(r.id)).length > 0
+                      ? recipes.filter(r => (sec.recipeIds || sec.items || []).includes(r.id))
                       : recipes
                     ).slice(0, sec.productLimit || 3).map(rec => (
                       <div key={rec.id} style={{ borderRadius: '14px', overflow: 'hidden', position: 'relative', height: '170px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
@@ -543,8 +548,8 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                 </div>
               )}
 
-              {/* NEWSLETTER */}
-              {sType === 'Newsletter' && (
+              {/* NEWSLETTER OR SUBSCRIPTION */}
+              {(sType === 'Newsletter' || sType === 'Subscription Banner') && (
                 <div style={{ background: 'linear-gradient(135deg,#16a34a 0%,#15803d 100%)', padding: '36px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px' }}>
                   <div style={{ flex: 1 }}>
                     <h3 style={{ margin: '0 0 6px', fontSize: '20px', fontWeight: '900', color: 'white' }}>{sec.title || 'Please subscribe for latest updates'}</h3>

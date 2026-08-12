@@ -934,6 +934,7 @@ export const AppContent = () => {
     // 1. Fetch Products
     const loadProducts = async () => {
       if (loadedFlags.current.products) return;
+      loadedFlags.current.products = true;
       try {
         const prodRes = await getData('admin/products');
         if (prodRes && prodRes.success !== false) {
@@ -947,6 +948,7 @@ export const AppContent = () => {
     // 2. Fetch Orders
     const loadOrders = async () => {
       if (loadedFlags.current.orders) return;
+      loadedFlags.current.orders = true;
       try {
         const ordRes = await getData('admin/orders');
         if (ordRes && ordRes.success !== false) {
@@ -960,6 +962,7 @@ export const AppContent = () => {
     // 3. Fetch Categories
     const loadCategories = async () => {
       if (loadedFlags.current.categories) return;
+      loadedFlags.current.categories = true;
       try {
         const catRes = await getData('admin/categories');
         if (catRes && catRes.success !== false) {
@@ -973,6 +976,7 @@ export const AppContent = () => {
     // 4. Fetch Brands
     const loadBrands = async () => {
       if (loadedFlags.current.brands) return;
+      loadedFlags.current.brands = true;
       try {
         const brandRes = await getData('admin/brands');
         if (brandRes && brandRes.success !== false) {
@@ -986,6 +990,7 @@ export const AppContent = () => {
     // 5. Fetch Customers
     const loadCustomers = async () => {
       if (loadedFlags.current.customers) return;
+      loadedFlags.current.customers = true;
       try {
         const custRes = await getData('admin/customers');
         if (custRes && custRes.success !== false) {
@@ -999,6 +1004,7 @@ export const AppContent = () => {
     // 6. Fetch Coupons
     const loadCoupons = async () => {
       if (loadedFlags.current.coupons) return;
+      loadedFlags.current.coupons = true;
       try {
         const coupRes = await getData('admin/coupons');
         if (coupRes && coupRes.success !== false) {
@@ -1012,6 +1018,7 @@ export const AppContent = () => {
     // 7. Fetch Admin Users
     const loadUsers = async () => {
       if (loadedFlags.current.users) return;
+      loadedFlags.current.users = true;
       try {
         const userRes = await getData('admin/users');
         if (userRes && userRes.success !== false) {
@@ -1025,6 +1032,7 @@ export const AppContent = () => {
     // 8. Fetch Roles Matrix
     const loadRoles = async () => {
       if (loadedFlags.current.roles) return;
+      loadedFlags.current.roles = true;
       try {
         const roleRes = await getData('admin/roles');
         if (roleRes && roleRes.success !== false) {
@@ -1049,6 +1057,7 @@ export const AppContent = () => {
     // 9. Fetch Audit Logs
     const loadAuditLogs = async () => {
       if (loadedFlags.current.auditLogs) return;
+      loadedFlags.current.auditLogs = true;
       try {
         const auditRes = await getData('admin/audit-logs');
         if (auditRes && auditRes.success !== false) {
@@ -1062,6 +1071,7 @@ export const AppContent = () => {
     // 10. Fetch Blogs
     const loadBlogs = async () => {
       if (loadedFlags.current.blogs) return;
+      loadedFlags.current.blogs = true;
       try {
         const blogRes = await getData('admin/blogs');
         if (blogRes && blogRes.success !== false) {
@@ -1075,6 +1085,7 @@ export const AppContent = () => {
     // 11. Fetch Recipes
     const loadRecipes = async () => {
       if (loadedFlags.current.recipes) return;
+      loadedFlags.current.recipes = true;
       try {
         const recipeRes = await getData('admin/recipes');
         if (recipeRes && recipeRes.success !== false) {
@@ -1088,6 +1099,7 @@ export const AppContent = () => {
     // 12. Fetch CMS
     const loadCmsData = async () => {
       if (loadedFlags.current.cmsData) return;
+      loadedFlags.current.cmsData = true;
       try {
         const cmsRes = await getData('admin/home-config');
         if (cmsRes && cmsRes.success !== false && cmsRes.data) {
