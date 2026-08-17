@@ -1115,6 +1115,10 @@ export const deleteAdminUser = async (id) => {
   return await deleteData(`admin/users/${id}`);
 };
 
+export const createAdminUser = async (userData) => {
+  return await postData('admin/auth/create', userData);
+};
+
 // ─── Testimonials API Endpoints ───────────────────────────────────────────────
 export const fetchTestimonials = async (params = {}) => {
   const queryParams = new URLSearchParams();

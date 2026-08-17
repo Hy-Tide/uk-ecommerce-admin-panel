@@ -88,12 +88,22 @@ export const Security = ({
     const adminName = typeof log.adminId === 'object' ? (log.adminId?.name || log.adminId?.email || '') : (log.user || '');
     const action = log.action || '';
     const entity = log.entityType || log.module || '';
-    const details = log.details || log.detail || '';
+    
+    let detailsStr = '';
+    const detailsVal = log.details || log.detail;
+    if (detailsVal) {
+      if (typeof detailsVal === 'object') {
+        detailsStr = detailsVal.storeName ? `Store Settings updated for "${detailsVal.storeName}"` : JSON.stringify(detailsVal);
+      } else {
+        detailsStr = String(detailsVal);
+      }
+    }
+
     return (
       adminName.toLowerCase().includes(term) ||
       action.toLowerCase().includes(term) ||
       entity.toLowerCase().includes(term) ||
-      details.toLowerCase().includes(term)
+      detailsStr.toLowerCase().includes(term)
     );
   });
 
@@ -151,11 +161,25 @@ export const Security = ({
     {
       key: 'details',
       label: 'Activity Details',
-      render: (row) => (
-        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', maxWidth: '340px', lineHeight: '1.4' }}>
-          {row.details || row.detail || 'Action logged in audit trail.'}
-        </span>
-      )
+      render: (row) => {
+        let detailsToShow = row.details || row.detail || 'Action logged in audit trail.';
+        if (typeof detailsToShow === 'object' && detailsToShow !== null) {
+          if (detailsToShow.storeName) {
+            detailsToShow = `Store Settings updated for "${detailsToShow.storeName}"`;
+          } else {
+            try {
+              detailsToShow = JSON.stringify(detailsToShow);
+            } catch (e) {
+              detailsToShow = row.action || 'System Activity';
+            }
+          }
+        }
+        return (
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', maxWidth: '340px', lineHeight: '1.4' }}>
+            {detailsToShow}
+          </span>
+        );
+      }
     },
     {
       key: 'ipAddress',
@@ -288,9 +312,11 @@ export const Security = ({
                 options={[
                   { label: 'All Actions', value: '' },
                   { label: 'LOGIN', value: 'LOGIN' },
-                  { label: 'CREATE', value: 'CREATE' },
-                  { label: 'UPDATE', value: 'UPDATE' },
-                  { label: 'DELETE', value: 'DELETE' }
+                  { label: 'UPDATE_SETTINGS', value: 'UPDATE_SETTINGS' },
+                  { label: 'CREATE_PRODUCT', value: 'CREATE_PRODUCT' },
+                  { label: 'UPDATE_PRODUCT', value: 'UPDATE_PRODUCT' },
+                  { label: 'DELETE_PRODUCT', value: 'DELETE_PRODUCT' },
+                  { label: 'UPDATE_ORDER', value: 'UPDATE_ORDER' }
                 ]}
               />
 
@@ -300,11 +326,13 @@ export const Security = ({
                 onChange={(e) => setEntityFilter(e.target.value)}
                 options={[
                   { label: 'All Entities', value: '' },
+                  { label: 'admin_users', value: 'admin_users' },
+                  { label: 'Setting', value: 'Setting' },
                   { label: 'Product', value: 'Product' },
+                  { label: 'Category', value: 'Category' },
+                  { label: 'Brand', value: 'Brand' },
                   { label: 'Order', value: 'Order' },
-                  { label: 'Customer', value: 'Customer' },
-                  { label: 'User', value: 'User' },
-                  { label: 'Settings', value: 'Settings' }
+                  { label: 'Customer', value: 'Customer' }
                 ]}
               />
             </div>

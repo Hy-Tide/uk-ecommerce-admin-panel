@@ -288,7 +288,7 @@ export const Testimonials = ({ addToast }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -305,9 +305,9 @@ export const Testimonials = ({ addToast }) => {
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={loadTestimonials}>
             Refresh
           </Button>
-          <Button variant="primary" size="sm" icon={Plus} onClick={handleOpenCreateModal}>
+          {/* <Button variant="primary" size="sm" icon={Plus} onClick={handleOpenCreateModal}>
             Add Testimonial
-          </Button>
+          </Button> */}
         </div>
       </div>
 
@@ -320,7 +320,7 @@ export const Testimonials = ({ addToast }) => {
 
       {/* Search & Filter Bar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        {/* <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {[
             { id: 'all', label: 'All Reviews' },
             { id: 'active', label: 'Active Only' },
@@ -344,7 +344,7 @@ export const Testimonials = ({ addToast }) => {
               {t.label}
             </button>
           ))}
-        </div>
+        </div> */}
 
         <form onSubmit={handleSearchSubmit} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <div style={{ position: 'relative', width: '240px' }}>
