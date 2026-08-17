@@ -1299,8 +1299,35 @@ export const reorderHomeConfigs = async (items) => {
   return await putData('admin/home-config/reorder', { items });
 };
 
-export { getData, postData, putData, patchData, deleteData, uploadFile };
+// ─── Delivery Zones API Endpoints ───────────────────────────────────────────
+export const fetchDeliveryZones = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.search) queryParams.append('search', params.search);
+  if (params.page) queryParams.append('page', params.page);
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.isActive !== undefined) queryParams.append('isActive', params.isActive);
 
+  const route = `admin/delivery-zones${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await getData(route);
+};
+
+export const getDeliveryZoneById = async (id) => {
+  return await getData(`admin/delivery-zones/${id}`);
+};
+
+export const createDeliveryZone = async (zoneData) => {
+  return await postData('admin/delivery-zones', zoneData);
+};
+
+export const updateDeliveryZone = async (id, zoneData) => {
+  return await putData(`admin/delivery-zones/${id}`, zoneData);
+};
+
+export const deleteDeliveryZone = async (id) => {
+  return await deleteData(`admin/delivery-zones/${id}`);
+};
+
+export { getData, postData, putData, patchData, deleteData, uploadFile };
 
 
 
