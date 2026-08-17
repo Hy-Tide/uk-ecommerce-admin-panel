@@ -428,28 +428,7 @@ export const Settings = ({
                 placeholder="sk_test_..."
               />
 
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', fontSize: '12px', fontWeight: '700', color: 'var(--primary)' }}>PayPal Integration</div>
-              <Input
-                label="PayPal Client ID"
-                value={paypalKeys.clientId}
-                onChange={(e) => setPaypalKeys({ ...paypalKeys, clientId: e.target.value })}
-                placeholder="client_id_..."
-              />
-              <Input
-                label="PayPal Secret"
-                type="password"
-                value={paypalKeys.secret}
-                onChange={(e) => setPaypalKeys({ ...paypalKeys, secret: e.target.value })}
-                placeholder="secret_..."
-              />
 
-              <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px', fontSize: '12px', fontWeight: '700', color: 'var(--primary)' }}>Google Pay</div>
-              <Input
-                label="Google Pay Merchant ID"
-                value={googlePayMerchantId}
-                onChange={(e) => setGooglePayMerchantId(e.target.value)}
-                placeholder="merchant_id_..."
-              />
             </div>
           </Card>
 

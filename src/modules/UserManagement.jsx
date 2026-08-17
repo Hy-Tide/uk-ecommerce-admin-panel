@@ -19,7 +19,8 @@ import {
   deleteRole,
   fetchAdminUsers,
   updateAdminUser,
-  deleteAdminUser
+  deleteAdminUser,
+  createAdminUser
 } from '../services/api';
 
 const AVAILABLE_PERMISSIONS = [
@@ -78,6 +79,8 @@ export const UserManagement = ({
   const [editingUser, setEditingUser] = useState(null);
   const [uName, setUName] = useState('');
   const [uEmail, setUEmail] = useState('');
+  const [uPassword, setUPassword] = useState('');
+  const [uConfirmPassword, setUConfirmPassword] = useState('');
   const [uStatus, setUStatus] = useState('active');
   const [uRoleId, setURoleId] = useState('');
 
@@ -128,6 +131,22 @@ export const UserManagement = ({
     loadRoles();
   }, []);
 
+  // Open Create User Modal
+  const handleOpenCreateUser = () => {
+    setEditingUser(null);
+    setUName('');
+    setUEmail('');
+    setUPassword('');
+    setUConfirmPassword('');
+    setUStatus('active');
+    const firstAllowedRole = roles.find(r => {
+      const isSuper = r.name && (r.name.toLowerCase() === 'admin' || r.name.toLowerCase() === 'super admin' || (r.description && r.description.toLowerCase().includes('super administrator')));
+      return !isSuper;
+    });
+    setURoleId(firstAllowedRole?._id || firstAllowedRole?.id || '');
+    setUserModalOpen(true);
+  };
+
   // Open Edit User Modal
   const handleOpenEditUser = (user) => {
     setEditingUser(user);
@@ -135,13 +154,13 @@ export const UserManagement = ({
     setUEmail(user.email || '');
     setUStatus(user.status || 'active');
     setURoleId(user.role_id || (roles[0]?._id || ''));
+    setUPassword('');
     setUserModalOpen(true);
   };
 
-  // Save / Update Admin User via PATCH /admin/users/{id}
+  // Save / Update Admin User via PATCH /admin/users/{id} or POST /admin/auth/create
   const handleSaveUser = async (e) => {
     if (e) e.preventDefault();
-    if (!editingUser) return;
     if (!uName.trim()) {
       if (addToast) addToast('User name is required', 'danger');
       return;
@@ -150,28 +169,55 @@ export const UserManagement = ({
       if (addToast) addToast('User email is required', 'danger');
       return;
     }
+    if (!editingUser) {
+      if (!uPassword.trim()) {
+        if (addToast) addToast('Password is required for new users', 'danger');
+        return;
+      }
+      if (uPassword !== uConfirmPassword) {
+        if (addToast) addToast('Passwords do not match', 'danger');
+        return;
+      }
+    }
 
     setSubmittingUser(true);
-    const payload = {
-      name: uName.trim(),
-      email: uEmail.trim(),
-      status: uStatus,
-      role_id: uRoleId
-    };
-
     try {
-      const res = await updateAdminUser(editingUser._id || editingUser.id, payload);
-      if (res && res.success !== false) {
-        if (addToast) addToast(res.message || 'Admin user updated successfully!', 'success');
-        setUserModalOpen(false);
-        loadAdminUsers();
+      if (editingUser) {
+        const payload = {
+          name: uName.trim(),
+          email: uEmail.trim(),
+          status: uStatus,
+          role_id: uRoleId
+        };
+        const res = await updateAdminUser(editingUser._id || editingUser.id, payload);
+        if (res && res.success !== false) {
+          if (addToast) addToast(res.message || 'Admin user updated successfully!', 'success');
+          setUserModalOpen(false);
+          loadAdminUsers();
+        } else {
+          const msg = res?.error || res?.message || 'Failed to update user';
+          if (addToast) addToast(msg, 'danger');
+        }
       } else {
-        const msg = res?.error || res?.message || 'Failed to update user';
-        if (addToast) addToast(msg, 'danger');
+        const payload = {
+          name: uName.trim(),
+          email: uEmail.trim(),
+          password: uPassword.trim(),
+          role_id: uRoleId
+        };
+        const res = await createAdminUser(payload);
+        if (res && res.success !== false) {
+          if (addToast) addToast(res.message || 'Admin user created successfully!', 'success');
+          setUserModalOpen(false);
+          loadAdminUsers();
+        } else {
+          const msg = res?.error || res?.message || 'Failed to create user';
+          if (addToast) addToast(msg, 'danger');
+        }
       }
     } catch (err) {
-      console.error('Error updating admin user:', err);
-      if (addToast) addToast(err.message || 'Error updating user', 'danger');
+      console.error('Error saving admin user:', err);
+      if (addToast) addToast(err.message || 'Error saving user', 'danger');
     } finally {
       setSubmittingUser(false);
     }
@@ -179,6 +225,10 @@ export const UserManagement = ({
 
   // Toggle user active/inactive status
   const handleToggleUserStatus = async (user) => {
+    if (checkIsSuperAdmin(user)) {
+      if (addToast) addToast('Super Admin status cannot be toggled', 'danger');
+      return;
+    }
     const nextStatus = (user.status || 'active').toLowerCase() === 'active' ? 'inactive' : 'active';
     try {
       const res = await updateAdminUser(user._id || user.id, { status: nextStatus });
@@ -196,6 +246,10 @@ export const UserManagement = ({
 
   // Delete Admin User via DELETE /admin/users/{id}
   const handleDeleteAdminUser = async (user) => {
+    if (checkIsSuperAdmin(user)) {
+      if (addToast) addToast('Super Admin users cannot be deleted', 'danger');
+      return;
+    }
     if (!window.confirm(`Are you sure you want to delete admin user "${user.name}"?`)) {
       return;
     }
@@ -320,6 +374,20 @@ export const UserManagement = ({
     return match ? match.name : 'Admin';
   };
 
+  // Helper to check if a user is a Super Admin
+  const checkIsSuperAdmin = (u) => {
+    if (!u) return false;
+    const rName = getRoleName(u.role_id).toLowerCase();
+    const uRole = (u.role || '').toLowerCase();
+    const isSuper = 
+      rName === 'super admin' || 
+      rName === 'admin' || 
+      uRole === 'super admin' || 
+      uRole === 'admin' || 
+      (u.email && u.email.toLowerCase() === 'admin@demo.com');
+    return isSuper;
+  };
+
   // Filtered Users List
   const filteredUsers = (adminUsers || []).filter(u => {
     if (!userSearch.trim()) return true;
@@ -375,19 +443,26 @@ export const UserManagement = ({
     {
       key: 'actions',
       label: 'Actions',
-      render: (row) => (
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <Button variant="outline" size="sm" icon={Edit} onClick={() => handleOpenEditUser(row)}>
-            Edit
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => handleToggleUserStatus(row)}>
-            Toggle Status
-          </Button>
-          <Button variant="ghost" size="sm" icon={Trash2} style={{ color: 'var(--danger)' }} onClick={() => handleDeleteAdminUser(row)}>
-            Delete
-          </Button>
-        </div>
-      )
+      render: (row) => {
+        const isSuperAdmin = checkIsSuperAdmin(row);
+        return (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <Button variant="outline" size="sm" icon={Edit} onClick={() => handleOpenEditUser(row)}>
+              Edit
+            </Button>
+            {!isSuperAdmin && (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => handleToggleUserStatus(row)}>
+                  Toggle Status
+                </Button>
+                <Button variant="ghost" size="sm" icon={Trash2} style={{ color: 'var(--danger)' }} onClick={() => handleDeleteAdminUser(row)}>
+                  Delete
+                </Button>
+              </>
+            )}
+          </div>
+        );
+      }
     }
   ];
 
@@ -405,10 +480,6 @@ export const UserManagement = ({
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
-          <Button variant="outline" size="sm" icon={Plus} onClick={handleOpenCreateRole}>
-            Create New Role
-          </Button>
           <Button variant="primary" size="sm" icon={RefreshCw} onClick={() => { loadAdminUsers(); loadRoles(); }}>
             Refresh Data
           </Button>
@@ -462,6 +533,8 @@ export const UserManagement = ({
       {activeTab === 'users' && (
         <Card title={`Operating Staff Members (${filteredUsers.length})`} icon={Users} actions={
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <Button variant="primary" size="sm" icon={UserPlus} onClick={handleOpenCreateUser}>Add Staff User</Button>
+            <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
             <div style={{ position: 'relative', width: '220px' }}>
               <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input
@@ -625,12 +698,12 @@ export const UserManagement = ({
       <Modal
         isOpen={userModalOpen}
         onClose={() => setUserModalOpen(false)}
-        title={editingUser ? `Edit Admin User: ${editingUser.name}` : 'Edit Admin User'}
+        title={editingUser ? `Edit Admin User: ${editingUser.name}` : 'Create New Staff User'}
         footer={
           <div style={{ display: 'flex', gap: '8px' }}>
             <Button variant="outline" size="sm" onClick={() => setUserModalOpen(false)}>Cancel</Button>
             <Button variant="primary" size="sm" icon={UserCheck} loading={submittingUser} onClick={handleSaveUser}>
-              Save User Changes
+              {editingUser ? 'Save User Changes' : 'Create Staff User'}
             </Button>
           </div>
         }
@@ -653,24 +726,58 @@ export const UserManagement = ({
             required
           />
 
-          <Select
-            label="Account Status"
-            value={uStatus}
-            onChange={(e) => setUStatus(e.target.value)}
-            options={[
-              { label: 'Active', value: 'active' },
-              { label: 'Inactive', value: 'inactive' }
-            ]}
-          />
+          {!editingUser && (
+            <>
+              <Input
+                label="Password"
+                type="password"
+                value={uPassword}
+                onChange={(e) => setUPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+              <Input
+                label="Confirm Password"
+                type="password"
+                value={uConfirmPassword}
+                onChange={(e) => setUConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </>
+          )}
+
+          {editingUser && (
+            <Select
+              label="Account Status"
+              value={uStatus}
+              onChange={(e) => setUStatus(e.target.value)}
+              disabled={checkIsSuperAdmin(editingUser)}
+              options={[
+                { label: 'Active', value: 'active' },
+                { label: 'Inactive', value: 'inactive' }
+              ]}
+            />
+          )}
 
           <Select
             label="Assigned RBAC Role"
             value={uRoleId}
             onChange={(e) => setURoleId(e.target.value)}
-            options={roles.map(r => ({
-              label: `${r.name} - ${r.description || ''}`,
-              value: r._id || r.id
-            }))}
+            disabled={checkIsSuperAdmin(editingUser)}
+            options={roles
+              .filter(r => {
+                const isSuper = r.name && (
+                  r.name.toLowerCase() === 'admin' || 
+                  r.name.toLowerCase() === 'super admin' ||
+                  (r.description && r.description.toLowerCase().includes('super administrator'))
+                );
+                return (editingUser && checkIsSuperAdmin(editingUser)) || !isSuper;
+              })
+              .map(r => ({
+                label: `${r.name} - ${r.description || ''}`,
+                value: r._id || r.id
+              }))}
           />
         </form>
       </Modal>

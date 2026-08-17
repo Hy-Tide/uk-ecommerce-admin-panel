@@ -361,144 +361,184 @@ export const AppLayout = ({
           onScroll={handleSidebarScroll}
           style={{ flex: 1, overflowY: 'auto', padding: '16px 8px', display: 'flex', flexDirection: 'column', gap: '4px' }}
         >
-          {processedItems.map((item) => {
-            if (item.isGroup) {
-              const GroupIcon = item.icon || HelpCircle;
-              const hasActiveChild = item.children.some(c => activeTab === c.key);
-              const isOpen = cmsOpen || hasActiveChild;
+          {(() => {
+            let lastSection = null;
+            return processedItems.map((item) => {
+              const showSectionHeader = item.section && item.section !== lastSection;
+              if (item.section) {
+                lastSection = item.section;
+              }
+
+              const renderHeader = () => {
+                if (!showSectionHeader) return null;
+                if (!sidebarCollapsed) {
+                  return (
+                    <div style={{
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.06em',
+                      color: 'var(--text-muted)',
+                      padding: '16px 12px 6px 12px',
+                      opacity: 0.8
+                    }}>
+                      {item.section}
+                    </div>
+                  );
+                }
+                return (
+                  <div style={{
+                    height: '1px',
+                    backgroundColor: 'var(--border-color)',
+                    margin: '12px 8px 8px 8px'
+                  }} />
+                );
+              };
+
+              if (item.isGroup) {
+                const GroupIcon = item.icon || HelpCircle;
+                const hasActiveChild = item.children.some(c => activeTab === c.key);
+                const isOpen = cmsOpen || hasActiveChild;
+
+                return (
+                  <React.Fragment key={item.key}>
+                    {renderHeader()}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                      <button
+                        onClick={() => setCmsOpen(!cmsOpen)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px',
+                          justifyContent: 'flex-start',
+                          padding: '10px 16px',
+                          borderRadius: 'var(--radius-md)',
+                          backgroundColor: 'transparent',
+                          color: 'var(--text-secondary)',
+                          fontWeight: '500',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          width: '100%',
+                          transition: 'background-color var(--transition-fast)'
+                        }}
+                        title={item.label}
+                        type="button"
+                      >
+                        <GroupIcon size={18} style={{ color: 'var(--text-muted)' }} />
+                        <span style={{ fontSize: '13px', flex: 1 }}>{item.label}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>
+                          ▶
+                        </span>
+                      </button>
+                      {isOpen && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '14px', borderLeft: '1.5px solid var(--border-color)', marginLeft: '24px', marginTop: '2px', marginBottom: '2px' }}>
+                          {item.children.map(child => {
+                            const ChildIcon = child.icon || HelpCircle;
+                            const isChildRestricted = rolePermissions[user.role]?.[child.key] === false;
+                            const childActive = activeTab === child.key;
+
+                            return (
+                              <NavLink
+                                key={child.key}
+                                to={`/${child.key}`}
+                                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                                style={({ isActive }) => ({
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '10px',
+                                  padding: '8px 12px',
+                                  borderRadius: 'var(--radius-md)',
+                                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                                  fontWeight: isActive ? '600' : '500',
+                                  border: 'none',
+                                  textDecoration: 'none',
+                                  cursor: isChildRestricted ? 'not-allowed' : 'pointer',
+                                  width: '100%',
+                                  opacity: isChildRestricted ? 0.35 : 1
+                                })}
+                                onClick={(e) => {
+                                  if (isChildRestricted) {
+                                    e.preventDefault();
+                                  } else {
+                                    setMobileMenuOpen(false);
+                                  }
+                                }}
+                                title={child.label}
+                              >
+                                <ChildIcon size={16} style={{ color: childActive ? 'var(--primary)' : 'var(--text-muted)' }} />
+                                <span style={{ fontSize: '12px' }}>{child.label}</span>
+                              </NavLink>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </React.Fragment>
+                );
+              }
+
+              const IconComponent = item.icon || HelpCircle;
+              const targetKey = item.isRestrictedKey || item.key;
+              const isTabRestricted = rolePermissions[user.role]?.[targetKey] === false;
 
               return (
-                <div key={item.key} style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
-                  <button
-                    onClick={() => setCmsOpen(!cmsOpen)}
-                    style={{
+                <React.Fragment key={item.key}>
+                  {renderHeader()}
+                  <NavLink
+                    key={item.key}
+                    to={`/${item.key}`}
+                    className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+                    style={({ isActive }) => ({
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '12px',
-                      justifyContent: 'flex-start',
-                      padding: '10px 16px',
+                      gap: sidebarCollapsed ? '0' : '12px',
+                      justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
+                      padding: sidebarCollapsed ? '10px' : '10px 16px',
                       borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-secondary)',
-                      fontWeight: '500',
+                      backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                      color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: isActive ? '600' : '500',
                       border: 'none',
-                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      cursor: isTabRestricted ? 'not-allowed' : 'pointer',
                       textAlign: 'left',
                       width: '100%',
-                      transition: 'background-color var(--transition-fast)'
+                      opacity: isTabRestricted ? 0.35 : 1,
+                      position: 'relative'
+                    })}
+                    onClick={(e) => {
+                      if (isTabRestricted) {
+                        e.preventDefault();
+                      } else {
+                        setMobileMenuOpen(false);
+                      }
                     }}
                     title={item.label}
-                    type="button"
                   >
-                    <GroupIcon size={18} style={{ color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: '13px', flex: 1 }}>{item.label}</span>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>
-                      ▶
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '14px', borderLeft: '1.5px solid var(--border-color)', marginLeft: '24px', marginTop: '2px', marginBottom: '2px' }}>
-                      {item.children.map(child => {
-                        const ChildIcon = child.icon || HelpCircle;
-                        const isChildRestricted = rolePermissions[user.role]?.[child.key] === false;
-                        const childActive = activeTab === child.key;
-
-                        return (
-                          <NavLink
-                            key={child.key}
-                            to={`/${child.key}`}
-                            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-                            style={({ isActive }) => ({
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              padding: '8px 12px',
-                              borderRadius: 'var(--radius-md)',
-                              backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                              color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                              fontWeight: isActive ? '600' : '500',
-                              border: 'none',
-                              textDecoration: 'none',
-                              cursor: isChildRestricted ? 'not-allowed' : 'pointer',
-                              width: '100%',
-                              opacity: isChildRestricted ? 0.35 : 1
-                            })}
-                            onClick={(e) => {
-                              if (isChildRestricted) {
-                                e.preventDefault();
-                              } else {
-                                setMobileMenuOpen(false);
-                              }
-                            }}
-                            title={child.label}
-                          >
-                            <ChildIcon size={16} style={{ color: childActive ? 'var(--primary)' : 'var(--text-muted)' }} />
-                            <span style={{ fontSize: '12px' }}>{child.label}</span>
-                          </NavLink>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                    <IconComponent size={18} style={{ color: activeTab === item.key ? 'var(--primary)' : 'var(--text-muted)' }} />
+                    {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>{item.label}</span>}
+                    {item.badge !== undefined && item.badge > 0 && !sidebarCollapsed && (
+                      <span
+                        style={{
+                          marginLeft: 'auto',
+                          backgroundColor: activeTab === item.key ? 'var(--primary)' : 'var(--border-color)',
+                          color: activeTab === item.key ? '#ffffff' : 'var(--text-secondary)',
+                          fontSize: '10px',
+                          fontWeight: '700',
+                          padding: '2px 6px',
+                          borderRadius: '10px'
+                        }}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                </React.Fragment>
               );
-            }
-
-            const IconComponent = item.icon || HelpCircle;
-            const targetKey = item.isRestrictedKey || item.key;
-            const isTabRestricted = rolePermissions[user.role]?.[targetKey] === false;
-
-            return (
-              <NavLink
-                key={item.key}
-                to={`/${item.key}`}
-                className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-                style={({ isActive }) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: sidebarCollapsed ? '0' : '12px',
-                  justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                  padding: sidebarCollapsed ? '10px' : '10px 16px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
-                  color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
-                  fontWeight: isActive ? '600' : '500',
-                  border: 'none',
-                  textDecoration: 'none',
-                  cursor: isTabRestricted ? 'not-allowed' : 'pointer',
-                  textAlign: 'left',
-                  width: '100%',
-                  opacity: isTabRestricted ? 0.35 : 1,
-                  position: 'relative'
-                })}
-                onClick={(e) => {
-                  if (isTabRestricted) {
-                    e.preventDefault();
-                  } else {
-                    setMobileMenuOpen(false);
-                  }
-                }}
-                title={item.label}
-              >
-                <IconComponent size={18} style={{ color: activeTab === item.key ? 'var(--primary)' : 'var(--text-muted)' }} />
-                {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>{item.label}</span>}
-                {item.badge !== undefined && item.badge > 0 && !sidebarCollapsed && (
-                  <span
-                    style={{
-                      marginLeft: 'auto',
-                      backgroundColor: activeTab === item.key ? 'var(--primary)' : 'var(--border-color)',
-                      color: activeTab === item.key ? '#ffffff' : 'var(--text-secondary)',
-                      fontSize: '10px',
-                      fontWeight: '700',
-                      padding: '2px 6px',
-                      borderRadius: '10px'
-                    }}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
+            });
+          })()}
         </nav>
 
         {/* Footer profile area */}
@@ -1275,29 +1315,35 @@ export const AppContent = () => {
 
   // Sidebar Menu list
   const sidebarItems = [
-    { key: 'dashboard', label: 'Dashboard', icon: Layout },
-    { key: 'categories', label: 'Categories', icon: Folder },
-    { key: 'brands', label: 'Brands', icon: Award },
-    { key: 'products', label: 'Products', icon: ShoppingBag },
-    { key: 'inventory', label: 'Inventory', icon: Package, badge: products.filter(p => p.stock <= p.minStock).length },
-    { key: 'orders', label: 'Orders Queue', icon: FileText, badge: orders.filter(o => o.deliveryStatus === 'New Order').length },
-    { key: 'customers', label: 'Customers', icon: Users },
-    { key: 'enquiries', label: 'Enquiries', icon: HelpCircle },
-    { key: 'coupons', label: 'Coupons', icon: Ticket },
-    { key: 'offers', label: 'Offers & Deals', icon: Sparkles },
-    { key: 'notifications', label: 'Push Notifications', icon: Bell },
-    { key: 'delivery', label: 'Delivery Dispatch', icon: Truck },
-    { key: 'home-config', label: 'Home CMS', icon: SettingsIcon },
-    { key: 'banners', label: 'Page Banners', icon: Sparkles },
-    { key: 'blogs', label: 'Blog Posts', icon: PenTool },
-    { key: 'recipes', label: 'Recipes Editor', icon: ChefHat },
-    { key: 'testimonials', label: 'Testimonials', icon: MessageSquare },
-    { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare },
-    { key: 'reports', label: 'Reports', icon: BarChart3 },
-    { key: 'payments', label: 'Payments Hub', icon: CreditCard },
-    { key: 'settings', label: 'Settings', icon: SettingsIcon },
-    { key: 'user_management', label: 'User Matrix', icon: UserCheck },
-    { key: 'security', label: 'Security Logs', icon: ShieldCheck }
+    { key: 'dashboard', label: 'Dashboard', icon: Layout, section: 'Core' },
+
+    { key: 'products', label: 'Products', icon: ShoppingBag, section: 'Catalog' },
+    { key: 'categories', label: 'Categories', icon: Folder, section: 'Catalog' },
+    { key: 'brands', label: 'Brands', icon: Award, section: 'Catalog' },
+    { key: 'inventory', label: 'Inventory', icon: Package, section: 'Catalog', badge: products.filter(p => p.stock <= p.minStock).length },
+
+    { key: 'orders', label: 'Orders Queue', icon: FileText, section: 'Sales & CRM', badge: orders.filter(o => o.deliveryStatus === 'New Order').length },
+    { key: 'customers', label: 'Customers', icon: Users, section: 'Sales & CRM' },
+    { key: 'payments', label: 'Payments Hub', icon: CreditCard, section: 'Sales & CRM' },
+    { key: 'enquiries', label: 'Enquiries', icon: HelpCircle, section: 'Sales & CRM' },
+
+    { key: 'coupons', label: 'Coupons', icon: Ticket, section: 'Marketing' },
+    { key: 'offers', label: 'Offers & Deals', icon: Sparkles, section: 'Marketing' },
+    { key: 'notifications', label: 'Push Notifications', icon: Bell, section: 'Marketing' },
+    { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, section: 'Marketing' },
+
+    { key: 'home-config', label: 'Home CMS', icon: SettingsIcon, section: 'Content CMS' },
+    { key: 'banners', label: 'Page Banners', icon: Sparkles, section: 'Content CMS' },
+    { key: 'blogs', label: 'Blog Posts', icon: PenTool, section: 'Content CMS' },
+    { key: 'recipes', label: 'Recipes Editor', icon: ChefHat, section: 'Content CMS' },
+    { key: 'testimonials', label: 'Testimonials', icon: MessageSquare, section: 'Content CMS' },
+
+    { key: 'delivery', label: 'Delivery Dispatch', icon: Truck, section: 'Logistics' },
+
+    { key: 'reports', label: 'Reports', icon: BarChart3, section: 'System Administration' },
+    { key: 'settings', label: 'Settings', icon: SettingsIcon, section: 'System Administration' },
+    { key: 'user_management', label: 'User Matrix', icon: UserCheck, section: 'System Administration' },
+    { key: 'security', label: 'Security Logs', icon: ShieldCheck, section: 'System Administration' }
   ];
 
   return (

@@ -265,7 +265,7 @@ export const Inventory = ({
       </div>
 
       {/* Live Inventory Master Table */}
-      <Card title="Live Inventory Catalog">
+      {/* <Card title="Live Inventory Catalog">
         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', marginTop: '12px' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Input
@@ -297,7 +297,7 @@ export const Inventory = ({
           onServerRowsChange={setLimit}
           loading={loading}
         />
-      </Card>
+      </Card> */}
 
       {/* Low Stock Alerts and Movements log grid split */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
