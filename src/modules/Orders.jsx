@@ -12,6 +12,7 @@ import GridView from '../components/GridView';
 import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
 import Timeline from '../components/Timeline';
+import { getOrderDeliveryHistory } from '../services/api';
 
 // ─── Status configs ─────────────────────────────────────────────────────────
 const DELIVERY_CONFIG = {
@@ -60,6 +61,48 @@ const SectionLabel = ({ children }) => (
     {children}
   </div>
 );
+
+const OrderDeliveryTimeline = ({ orderId }) => {
+  const [history, setHistory] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await getOrderDeliveryHistory(orderId);
+        if (res && res.data && isMounted) {
+          setHistory(res.data.history || res.data || []);
+        }
+      } catch (err) {
+        console.error('Failed to load delivery history', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    if (orderId) {
+      fetchHistory();
+    }
+    return () => { isMounted = false; };
+  }, [orderId]);
+
+  if (loading) {
+    return <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading delivery history...</div>;
+  }
+
+  if (!history || history.length === 0) {
+    return <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No delivery assignment history available for this order.</div>;
+  }
+
+  const steps = history.map(h => ({
+    status: h.status,
+    time: h.updatedAt || h.timestamp,
+    desc: h.notes || `Assigned to ${h.partnerName || 'partner'}`
+  }));
+
+  return <Timeline steps={steps} />;
+};
 
 export const Orders = ({
   orders = [],
@@ -498,6 +541,14 @@ export const Orders = ({
               <div>
                 <SectionLabel>Fulfillment Trail</SectionLabel>
                 <Timeline steps={activeOrder.timeline} />
+              </div>
+
+              {/* Delivery Partner Timeline */}
+              <div>
+                <SectionLabel>Delivery Partner Timeline</SectionLabel>
+                <div style={{ backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '14px' }}>
+                  <OrderDeliveryTimeline orderId={activeOrder.id || activeOrder._id} />
+                </div>
               </div>
 
               {/* Items */}

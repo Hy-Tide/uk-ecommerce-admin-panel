@@ -6,7 +6,7 @@ import Modal from '../components/Modal';
 import Input, { Select } from '../components/Input';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
-import { fetchInventory } from '../services/api';
+import { fetchInventory, fetchCriticalStockAlerts } from '../services/api';
 
 export const Inventory = ({
   products = [],
@@ -20,6 +20,9 @@ export const Inventory = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [stockStatusFilter, setStockStatusFilter] = useState('all');
   const [adjustmentModal, setAdjustmentModal] = useState(false);
+
+  const [criticalAlerts, setCriticalAlerts] = useState([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -80,8 +83,23 @@ export const Inventory = ({
     }
   };
 
+  const loadCriticalAlerts = async () => {
+    setAlertsLoading(true);
+    try {
+      const res = await fetchCriticalStockAlerts({ limit: 10, page: 1 });
+      if (res && res.success !== false) {
+        setCriticalAlerts(res.data?.alerts || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch critical alerts:', err);
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadLiveInventory();
+    loadCriticalAlerts();
   }, [searchTerm, stockStatusFilter, page, limit]);
 
   useEffect(() => {
@@ -305,35 +323,38 @@ export const Inventory = ({
         {/* Alerts card list */}
         <Card title="Critical Stock Alerts">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
-            {lowStockProducts.length === 0 && outOfStockProducts.length === 0 && (
+            {alertsLoading ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>Loading alerts...</div>
+            ) : criticalAlerts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>Warehouse levels are healthy. No alerts triggered.</div>
+            ) : (
+              criticalAlerts.map((item, index) => {
+                const isOut = item.status === 'OUT_OF_STOCK' || item.stock === 0;
+                return (
+                  <div
+                    key={item.variationId || item.productId || index}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      border: '1px solid var(--border-color)',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: isOut ? 'var(--danger-light)' : 'var(--warning-light)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '700' }}>{item.productName}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>SKU: {item.sku}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                      <Badge variant={isOut ? 'danger' : 'warning'}>{isOut ? 'Out of Stock' : 'Low Stock'}</Badge>
+                      <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Current: {item.stock}</span>
+                    </div>
+                  </div>
+                );
+              })
             )}
-            {[...outOfStockProducts, ...lowStockProducts].map((item) => {
-              const isOut = item.stock === 0;
-              return (
-                <div
-                  key={item.id || item._id}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    border: '1px solid var(--border-color)',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    backgroundColor: isOut ? 'var(--danger-light)' : 'var(--warning-light)'
-                  }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: '700' }}>{item.productName || item.name}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>SKU: {item.sku} • Brand: {item.brand}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <Badge variant={isOut ? 'danger' : 'warning'}>{isOut ? 'Out of Stock' : 'Low Stock'}</Badge>
-                    <span style={{ fontSize: '12px', fontWeight: 'bold' }}>Current: {item.stock}</span>
-                  </div>
-                </div>
-              );
-            })}
           </div>
         </Card>
 

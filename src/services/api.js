@@ -802,6 +802,16 @@ export const fetchInventory = async (params = {}) => {
   return await getData(route);
 };
 
+export const fetchCriticalStockAlerts = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.page) queryParams.append('page', params.page);
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.status) queryParams.append('status', params.status);
+  
+  const route = `admin/inventory/critical-stock-alert${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await getData(route);
+};
+
 // ─── Blog Categories API Endpoints ──────────────────────────────────────────
 export const fetchBlogCategories = async (params = {}) => {
   const queryParams = new URLSearchParams();
@@ -1325,6 +1335,63 @@ export const updateDeliveryZone = async (id, zoneData) => {
 
 export const deleteDeliveryZone = async (id) => {
   return await deleteData(`admin/delivery-zones/${id}`);
+};
+
+// ─── Delivery Partners API Endpoints ────────────────────────────────────────
+export const fetchDeliveryPartners = async (params = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.search) queryParams.append('search', params.search);
+  if (params.page) queryParams.append('page', params.page);
+  if (params.limit) queryParams.append('limit', params.limit);
+  if (params.status) queryParams.append('status', params.status);
+  
+  const route = `admin/delivery-partners${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await getData(route);
+};
+
+export const fetchAvailablePartners = async () => {
+  return await getData('admin/delivery-partners/available');
+};
+
+export const getDeliveryPartnerById = async (id) => {
+  return await getData(`admin/delivery-partners/${id}`);
+};
+
+export const createDeliveryPartner = async (partnerData) => {
+  return await postData('admin/delivery-partners', partnerData);
+};
+
+export const updateDeliveryPartner = async (id, partnerData) => {
+  return await putData(`admin/delivery-partners/${id}`, partnerData);
+};
+
+export const deleteDeliveryPartner = async (id) => {
+  return await deleteData(`admin/delivery-partners/${id}`);
+};
+
+export const getPartnerAssignments = async (id) => {
+  return await getData(`admin/delivery-partners/${id}/assignments`);
+};
+
+export const getPartnerHistory = async (id) => {
+  return await getData(`admin/delivery-partners/${id}/history`);
+};
+
+// ─── Delivery Assignments API Endpoints ─────────────────────────────────────
+export const assignOrderToPartner = async (assignmentData) => {
+  return await postData('admin/delivery-assignments/assign', assignmentData);
+};
+
+export const reassignOrderToPartner = async (assignmentData) => {
+  return await postData('admin/delivery-assignments/reassign', assignmentData);
+};
+
+export const updateAssignmentStatus = async (id, statusData) => {
+  return await putData(`admin/delivery-assignments/${id}/status`, statusData);
+};
+
+export const getOrderDeliveryHistory = async (orderId) => {
+  return await getData(`admin/delivery-assignments/order/${orderId}/history`);
 };
 
 export { getData, postData, putData, patchData, deleteData, uploadFile };
