@@ -73,21 +73,7 @@ const UserManagement = React.lazy(() => import('./modules/UserManagement'));
 const Security = React.lazy(() => import('./modules/Security'));
 const Banners = React.lazy(() => import('./modules/Banners'));
 
-// Import initial database seeds
-import {
-  INITIAL_PRODUCTS,
-  INITIAL_CATEGORIES,
-  INITIAL_BRANDS,
-  INITIAL_CUSTOMERS,
-  INITIAL_ORDERS,
-  INITIAL_COUPONS,
-  INITIAL_DRIVERS,
-  INITIAL_ROLES_MATRIX,
-  INITIAL_CMS_DATA,
-  INITIAL_BLOGS,
-  INITIAL_RECIPES,
-  INITIAL_AUDIT_LOGS
-} from './data/seedData';
+
 
 // Full Screen Shimmer Skeleton loader for page transitions and lazy imports
 const LoadingFallback = () => (

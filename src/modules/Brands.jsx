@@ -310,17 +310,7 @@ export const Brands = ({
 
       setModalOpen(false);
     } catch (err) {
-      const fallbackBrand = {
-        id: editingBrand ? editingBrand.id : `br-${Date.now()}`,
-        name, logo, description, status
-      };
-      if (editingBrand) {
-        setBrands(brands.map(b => b.id === editingBrand.id ? fallbackBrand : b));
-      } else {
-        setBrands([...brands, fallbackBrand]);
-      }
-      addToast('Brand saved locally', 'info');
-      setModalOpen(false);
+      showSnackbar(err.message || 'Error saving brand', 'error');
     } finally {
       setLoading(false);
     }

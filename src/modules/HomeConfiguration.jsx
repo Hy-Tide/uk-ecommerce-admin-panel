@@ -237,15 +237,11 @@ const HomeConfiguration = ({
           setSections(sorted);
           if (sorted.length > 0) handleSelectSection(sorted[0]);
         } else {
-          const seedSections = cmsData.homeSections || [];
-          setSections(seedSections);
-          if (seedSections.length > 0) handleSelectSection(seedSections[0]);
+          setSections([]);
         }
       } catch (err) {
         console.error('Error fetching home configuration:', err);
-        const seedSections = cmsData.homeSections || [];
-        setSections(seedSections);
-        if (seedSections.length > 0) handleSelectSection(seedSections[0]);
+        setSections([]);
       } finally {
         setLoading(false);
       }

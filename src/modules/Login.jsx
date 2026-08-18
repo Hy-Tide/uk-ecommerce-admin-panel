@@ -4,9 +4,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowRight, Leaf, Flame, Wheat, Utensils, Spar
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { postData, showSnackbar, saveAuthData } from '../services/api';
-import { INITIAL_USERS } from '../data/seedData';
-
-export const Login = ({ onLoginSuccess, users = INITIAL_USERS }) => {
+export const Login = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);

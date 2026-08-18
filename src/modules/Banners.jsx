@@ -26,53 +26,7 @@ const resolveImageUrl = (url) => {
   return `${baseUrl}/${cleanUrl}`;
 };
 
-// Pre-seeded default 4 banners corresponding to target pages
-const DEFAULT_BANNERS = [
-  {
-    id: 'ban-1',
-    _id: 'ban-1',
-    title: 'Super Saver Veggie Box Offers',
-    description: 'Fresh organic farm vegetables with up to 40% discount this week.',
-    pageType: 'offers',
-    image_url: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800',
-    link: '/offers/veggie-special',
-    is_active: true,
-    createdAt: '2026-08-10T12:00:00.000Z'
-  },
-  {
-    id: 'ban-2',
-    _id: 'ban-2',
-    title: 'Fresh Homemade Summer Salads',
-    description: 'Learn how to make delicious low-calorie seasonal fruit and vegetable salads.',
-    pageType: 'recipes',
-    image_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800',
-    link: '/recipes/summer-salads',
-    is_active: true,
-    createdAt: '2026-08-08T09:15:00.000Z'
-  },
-  {
-    id: 'ban-3',
-    _id: 'ban-3',
-    title: 'Top 10 Healthy Cooking Hacks',
-    description: 'Discover simple cooking tricks to preserve nutrients and enhance organic flavor.',
-    pageType: 'blogs',
-    image_url: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=800',
-    link: '/blogs/cooking-hacks',
-    is_active: true,
-    createdAt: '2026-08-09T15:30:00.000Z'
-  },
-  {
-    id: 'ban-4',
-    _id: 'ban-4',
-    title: 'Contact Grandma\'s Basket Care',
-    description: 'Get direct live support and answers to delivery timeline questions.',
-    pageType: 'contact-us',
-    image_url: 'https://images.unsplash.com/photo-1534536281715-e28d76689b4d?auto=format&fit=crop&q=80&w=800',
-    link: '/contact',
-    is_active: false,
-    createdAt: '2026-08-07T14:20:00.000Z'
-  }
-];
+
 
 export const Banners = ({
   addToast,
@@ -114,22 +68,17 @@ export const Banners = ({
       if (res && res.success !== false) {
         const list = res.data?.banners || res.banners || (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
         if (Array.isArray(list) && list.length > 0) {
-          // Sync backend data, matching by pageType or extending defaults
-          const merged = DEFAULT_BANNERS.map(def => {
-            const apiMatch = list.find(b => b.pageType === def.pageType);
-            return apiMatch ? normalizeBanner(apiMatch) : def;
-          });
-          setBanners(merged);
+          const apiBanners = list.map(normalizeBanner);
+          setBanners(apiBanners);
         } else {
-          setBanners(DEFAULT_BANNERS);
+          setBanners([]);
         }
       } else {
-        setBanners(DEFAULT_BANNERS);
+        setBanners([]);
       }
     } catch (err) {
       console.error('Failed to load banners from API:', err);
-      // Seamless offline fallback
-      setBanners(DEFAULT_BANNERS);
+      setBanners([]);
     } finally {
       setLoading(false);
     }
@@ -140,18 +89,16 @@ export const Banners = ({
   }, []);
 
   const normalizeBanner = (b) => {
-    // Find the default banner matching pageType to inherit description if missing from API
-    const defaultMatch = DEFAULT_BANNERS.find(def => def.pageType === b.pageType) || {};
     return {
-      id: b._id || b.id || defaultMatch.id || `ban-${Date.now()}`,
+      id: b._id || b.id || `ban-${Date.now()}`,
       _id: b._id || b.id,
-      title: b.title || defaultMatch.title || '',
-      description: b.description || defaultMatch.description || '',
-      pageType: b.pageType || defaultMatch.pageType || 'offers',
-      image_url: b.image_url || b.imageUrl || defaultMatch.image_url || '',
-      link: b.link || defaultMatch.link || '',
+      title: b.title || '',
+      description: b.description || '',
+      pageType: b.pageType || 'offers',
+      image_url: b.image_url || b.imageUrl || '',
+      link: b.link || '',
       is_active: b.is_active !== undefined ? Boolean(b.is_active) : (b.isActive !== undefined ? Boolean(b.isActive) : true),
-      createdAt: b.createdAt || defaultMatch.createdAt || new Date().toISOString()
+      createdAt: b.createdAt || new Date().toISOString()
     };
   };
 
