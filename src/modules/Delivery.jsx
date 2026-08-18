@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LayoutDashboard, PackageSearch, Truck, Users, MapPin } from 'lucide-react';
 import DeliveryZonesManager from './DeliveryZonesManager';
 import DeliveryPartnersManager from './DeliveryPartnersManager';
 import DeliveryAssignments from './DeliveryAssignments';
@@ -8,11 +9,11 @@ export const Delivery = ({ addToast }) => {
   const [activeTab, setActiveTab] = useState('Dashboard'); // 'Dashboard', 'Unassigned', 'Assigned', 'Partners', 'Zones'
 
   const tabs = [
-    { key: 'Dashboard', label: 'Dashboard' },
-    { key: 'Unassigned', label: 'Unassigned Orders' },
-    { key: 'Assigned', label: 'Assigned Orders' },
-    { key: 'Partners', label: 'Delivery Partners' },
-    { key: 'Zones', label: 'Delivery Zones' }
+    { key: 'Dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { key: 'Unassigned', label: 'Unassigned Orders', icon: PackageSearch },
+    { key: 'Assigned', label: 'Assigned Orders', icon: Truck },
+    { key: 'Partners', label: 'Delivery Partners', icon: Users },
+    { key: 'Zones', label: 'Delivery Zones', icon: MapPin }
   ];
 
   return (
@@ -20,33 +21,41 @@ export const Delivery = ({ addToast }) => {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '700', letterSpacing: '-0.02em', margin: 0 }}>Logistics & Delivery</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Manage delivery partners, order assignments, and delivery zones.</p>
+          <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0 }}>Logistics & Delivery</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px', margin: 0 }}>Manage delivery partners, order assignments, and delivery zones.</p>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div style={{ borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '24px' }}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              padding: '12px 4px',
-              border: 'none',
-              borderBottom: activeTab === tab.key ? '2px solid var(--primary)' : '2px solid transparent',
-              backgroundColor: 'transparent',
-              color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-secondary)',
-              fontWeight: activeTab === tab.key ? '600' : '500',
-              cursor: 'pointer',
-              fontSize: '14px',
-              transition: 'all 0.2s',
-              marginBottom: '-1px'
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '6px', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', overflowX: 'auto' }}>
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 16px',
+                border: 'none',
+                borderRadius: '8px',
+                backgroundColor: isActive ? 'var(--primary-light)' : 'transparent',
+                color: isActive ? 'var(--primary)' : 'var(--text-secondary)',
+                fontWeight: isActive ? '700' : '500',
+                cursor: 'pointer',
+                fontSize: '13px',
+                transition: 'all 0.2s',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Icon size={15} style={{ color: isActive ? 'var(--primary)' : 'var(--text-muted)' }} />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content */}

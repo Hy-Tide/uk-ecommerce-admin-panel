@@ -9,6 +9,7 @@ import Card from '../components/Card';
 import Input, { Select, Textarea } from '../components/Input';
 import Uploader from '../components/Uploader';
 import { fetchSettings, updateSettings } from '../services/api';
+import { ShimmerRow } from '../components/ShimmerSkeleton';
 
 export const Settings = ({
   products = [],
@@ -207,8 +208,9 @@ export const Settings = ({
 
   if (loading) {
     return (
-      <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-        Loading global store settings...
+      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <ShimmerRow height="60px" count={2} />
+        <ShimmerRow height="180px" count={3} />
       </div>
     );
   }

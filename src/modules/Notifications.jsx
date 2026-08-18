@@ -14,6 +14,7 @@ import {
   fetchNotificationHistory,
   fetchCustomers
 } from '../services/api';
+import { ShimmerRow, TableShimmer } from '../components/ShimmerSkeleton';
 
 export const Notifications = ({ customers: propCustomers = [], addToast }) => {
   // Raw list from API — individual per-user records
@@ -285,9 +286,7 @@ export const Notifications = ({ customers: propCustomers = [], addToast }) => {
       <Card title={`Notification History (${filteredGroups.length} send event${filteredGroups.length !== 1 ? 's' : ''} · ${meta.total} total records)`}>
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              Loading notification history...
-            </div>
+            <ShimmerRow count={5} height="90px" />
           ) : filteredGroups.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               No notification records found.

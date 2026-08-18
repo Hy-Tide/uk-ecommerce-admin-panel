@@ -12,6 +12,7 @@ import ListView from '../components/ListView';
 import GridView from '../components/GridView';
 import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 // ─── Tier helper ────────────────────────────────────────────────────────────
 const getTier = (pts = 0) => {
@@ -503,11 +504,7 @@ export const Customers = ({
 
       {/* Main presentation switcher */}
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', backgroundColor: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color)' }}>
-          <div style={{ width: '36px', height: '36px', border: '3px solid var(--border-color)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-          <p style={{ marginTop: '16px', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>Fetching live customer records...</p>
-        </div>
+        viewMode === 'grid' ? <ShimmerCardGrid count={6} height="190px" /> : <TableShimmer rows={6} cols={6} />
       ) : viewMode === 'list' ? (
         <ListView
           columns={columns}

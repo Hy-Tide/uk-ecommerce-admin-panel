@@ -79,6 +79,21 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
     loadPartners();
   }, [type, page, limit]);
 
+  const isRowAssigned = (row) => {
+    if (!row) return false;
+    const st = String(row.deliveryStatus || '').trim().toUpperCase();
+    if (st === 'NOT_ASSIGNED' || st === 'NOT ASSIGNED' || st === 'UNASSIGNED' || st === 'PENDING') {
+      return false;
+    }
+    if (st === 'ASSIGNED' || st === 'ACCEPTED' || st === 'PICKED UP' || st === 'OUT FOR DELIVERY') {
+      return true;
+    }
+    if (row.deliveryPartner || row.deliveryPartnerId || row.assignedPartner || row.assignedPartnerId) {
+      return true;
+    }
+    return false;
+  };
+
   const handleOpenAssignModal = (order) => {
     setActiveOrder(order);
     setSelectedPartner('');
@@ -93,6 +108,8 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
       return;
     }
 
+    const assigned = isRowAssigned(activeOrder);
+
     setIsSubmitting(true);
     try {
       const payload = {
@@ -101,7 +118,7 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
         notes: assignNotes
       };
 
-      if (type === 'unassigned') {
+      if (!assigned) {
         await assignOrderToPartner(payload);
         addToast(`Order #${payload.orderId.slice(-6)} assigned successfully`, 'success');
       } else {
@@ -125,13 +142,33 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
     { key: 'amount', label: 'Amount', render: (row) => <span>£{Number(row.total || 0).toFixed(2)}</span> },
     { key: 'orderDate', label: 'Date', render: (row) => <span>{new Date(row.createdAt || Date.now()).toLocaleDateString()}</span> },
     { key: 'orderStatus', label: 'Order Status', render: (row) => <Badge variant="primary">{row.orderStatus || 'Pending'}</Badge> },
-    { key: 'deliveryStatus', label: 'Delivery Status', render: (row) => <Badge variant={type === 'unassigned' ? 'secondary' : 'warning'}>{row.deliveryStatus || 'Not Assigned'}</Badge> },
-    { key: 'actions', label: 'Action', render: (row) => (
-      <Button variant="outline" size="sm" onClick={() => handleOpenAssignModal(row)}>
-        {type === 'unassigned' ? 'Assign Partner' : 'Reassign Partner'}
-      </Button>
-    )}
+    {
+      key: 'deliveryStatus',
+      label: 'Delivery Status',
+      render: (row) => {
+        const assigned = isRowAssigned(row);
+        return (
+          <Badge variant={assigned ? 'warning' : 'secondary'}>
+            {row.deliveryStatus || (assigned ? 'Assigned' : 'Not Assigned')}
+          </Badge>
+        );
+      }
+    },
+    {
+      key: 'actions',
+      label: 'Action',
+      render: (row) => {
+        const assigned = isRowAssigned(row);
+        return (
+          <Button variant="outline" size="sm" onClick={() => handleOpenAssignModal(row)}>
+            {assigned ? 'Reassign Partner' : 'Assign Partner'}
+          </Button>
+        );
+      }
+    }
   ];
+
+  const activeIsAssigned = activeOrder ? isRowAssigned(activeOrder) : type === 'assigned';
 
   return (
     <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px' }}>
@@ -157,7 +194,7 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
       <Modal
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
-        title={type === 'unassigned' ? 'Assign Delivery Partner' : 'Reassign Delivery Partner'}
+        title={activeIsAssigned ? 'Reassign Delivery Partner' : 'Assign Delivery Partner'}
       >
         {activeOrder && (
           <form onSubmit={handleAssignSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -194,7 +231,7 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
               onChange={(e) => setAssignNotes(e.target.value)}
             />
 
-            {type !== 'unassigned' && (
+            {activeIsAssigned && (
               <p style={{ fontSize: '12px', color: 'var(--warning)', margin: 0 }}>
                 Note: Reassigning an order will keep the previous assignment history intact.
               </p>
@@ -205,7 +242,7 @@ const DeliveryAssignments = ({ type = 'unassigned', addToast }) => {
                 Cancel
               </Button>
               <Button type="submit" variant="primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Assigning...' : (type === 'unassigned' ? 'Assign Order' : 'Reassign Order')}
+                {isSubmitting ? 'Processing...' : (activeIsAssigned ? 'Reassign Order' : 'Assign Order')}
               </Button>
             </div>
           </form>

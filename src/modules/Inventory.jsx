@@ -7,6 +7,7 @@ import Input, { Select } from '../components/Input';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
 import { fetchInventory, fetchCriticalStockAlerts } from '../services/api';
+import { ShimmerRow } from '../components/ShimmerSkeleton';
 
 export const Inventory = ({
   products = [],
@@ -324,7 +325,7 @@ export const Inventory = ({
         <Card title="Critical Stock Alerts">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
             {alertsLoading ? (
-              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>Loading alerts...</div>
+              <ShimmerRow height="48px" count={3} />
             ) : criticalAlerts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>Warehouse levels are healthy. No alerts triggered.</div>
             ) : (

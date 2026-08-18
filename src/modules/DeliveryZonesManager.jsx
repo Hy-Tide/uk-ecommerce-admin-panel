@@ -7,6 +7,7 @@ import Table from '../components/Table';
 import Badge from '../components/Badge';
 import MapPolygonDrawer from './MapPolygonDrawer';
 import { fetchDeliveryZones, createDeliveryZone, updateDeliveryZone, deleteDeliveryZone } from '../services/api';
+import { TableShimmer } from '../components/ShimmerSkeleton';
 
 const DeliveryZonesManager = ({ addToast }) => {
   const [zones, setZones] = useState([]);
@@ -44,8 +45,20 @@ const DeliveryZonesManager = ({ addToast }) => {
     loadZones();
   }, []);
 
+  const isZoneActive = (zone) => {
+    if (!zone) return false;
+    if (zone.isActive !== undefined) return Boolean(zone.isActive);
+    if (zone.is_active !== undefined) return Boolean(zone.is_active);
+    if (zone.status) {
+      const s = String(zone.status).toLowerCase();
+      return s === 'active' || s === 'enabled';
+    }
+    return true;
+  };
+
   const handleOpenModal = (zone = null) => {
     if (zone) {
+      const activeState = isZoneActive(zone);
       setCurrentZoneId(zone._id || zone.id);
       setFormData({
         name: zone.name || '',
@@ -53,7 +66,7 @@ const DeliveryZonesManager = ({ addToast }) => {
         deliveryCharge: zone.deliveryCharge || 0,
         minimumOrderValue: zone.minimumOrderValue || 0,
         estimatedDeliveryTime: zone.estimatedDeliveryTime || '',
-        isActive: zone.isActive !== false,
+        isActive: activeState,
         coordinates: zone.coordinates && zone.coordinates[0] ? zone.coordinates[0] : []
       });
     } else {
@@ -124,57 +137,78 @@ const DeliveryZonesManager = ({ addToast }) => {
 
   const handleToggleStatus = async (id, currentStatus) => {
     try {
-      // Find the zone to get all data, update its isActive status
       const zoneToUpdate = zones.find(z => (z._id || z.id) === id);
       if (zoneToUpdate) {
+        const nextActive = !currentStatus;
         const payload = {
           ...zoneToUpdate,
-          isActive: !currentStatus
+          isActive: nextActive,
+          is_active: nextActive,
+          status: nextActive ? 'active' : 'inactive'
         };
+
+        // Optimistic UI state update
+        setZones(zones.map(z => ((z._id || z.id) === id ? { ...z, ...payload } : z)));
+
         await updateDeliveryZone(id, payload);
-        addToast(`Zone ${!currentStatus ? 'activated' : 'deactivated'} successfully`, 'success');
+        addToast(`Zone ${nextActive ? 'activated' : 'deactivated'} successfully`, 'success');
         loadZones();
       }
     } catch (err) {
       addToast('Failed to update status', 'error');
+      loadZones();
     }
   };
 
   const columns = [
     { key: 'name', label: 'Zone Name', render: (row) => <strong style={{color: 'var(--text-primary)'}}>{row.name}</strong> },
-    { key: 'deliveryCharge', label: 'Delivery Charge', render: (row) => <span>${Number(row.deliveryCharge || 0).toFixed(2)}</span> },
-    { key: 'minimumOrderValue', label: 'Min Order', render: (row) => <span>${Number(row.minimumOrderValue || 0).toFixed(2)}</span> },
+    { key: 'deliveryCharge', label: 'Delivery Charge', render: (row) => <span>£{Number(row.deliveryCharge || 0).toFixed(2)}</span> },
+    { key: 'minimumOrderValue', label: 'Min Order', render: (row) => <span>£{Number(row.minimumOrderValue || 0).toFixed(2)}</span> },
     { key: 'estimatedDeliveryTime', label: 'Est. Time' },
-    { key: 'isActive', label: 'Status', render: (row) => (
-      <Badge variant={row.isActive ? 'success' : 'danger'}>
-        {row.isActive ? 'Active' : 'Inactive'}
-      </Badge>
-    )},
-    { key: 'actions', label: 'Actions', render: (row) => (
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button
-          onClick={() => handleToggleStatus(row._id || row.id, row.isActive)}
-          title={row.isActive ? 'Deactivate' : 'Activate'}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: row.isActive ? 'var(--warning)' : 'var(--success)', padding: '4px' }}
-        >
-          <Power size={16} />
-        </button>
-        <button
-          onClick={() => handleOpenModal(row)}
-          title="Edit"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }}
-        >
-          <Edit2 size={16} />
-        </button>
-        <button
-          onClick={() => handleDelete(row._id || row.id)}
-          title="Delete"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px' }}
-        >
-          <Trash2 size={16} />
-        </button>
-      </div>
-    )}
+    { key: 'isActive', label: 'Status', render: (row) => {
+      const active = isZoneActive(row);
+      return (
+        <Badge variant={active ? 'success' : 'danger'}>
+          {active ? 'Active' : 'Inactive'}
+        </Badge>
+      );
+    }},
+    { key: 'actions', label: 'Actions', render: (row) => {
+      const active = isZoneActive(row);
+      return (
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={() => handleToggleStatus(row._id || row.id, active)}
+            title={active ? 'Deactivate Zone' : 'Activate Zone'}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: active ? '#10b981' : '#9ca3af',
+              padding: '4px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <Power size={18} style={{ strokeWidth: 2.2 }} />
+          </button>
+          <button
+            onClick={() => handleOpenModal(row)}
+            title="Edit"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: '4px' }}
+          >
+            <Edit2 size={16} />
+          </button>
+          <button
+            onClick={() => handleDelete(row._id || row.id)}
+            title="Delete"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', padding: '4px' }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      );
+    }}
   ];
 
   return (
@@ -191,7 +225,7 @@ const DeliveryZonesManager = ({ addToast }) => {
 
       <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading delivery zones...</div>
+          <TableShimmer rows={5} cols={5} />
         ) : (
           <Table
             columns={columns}

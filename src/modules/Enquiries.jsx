@@ -14,6 +14,7 @@ import {
   replyEnquiry,
   updateEnquiryStatus
 } from '../services/api';
+import { ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 export const Enquiries = ({ addToast }) => {
   const [enquiries, setEnquiries] = useState([]);
@@ -233,7 +234,7 @@ export const Enquiries = ({ addToast }) => {
       <Card title={`Customer Enquiries (${filteredEnquiries.length})`}>
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading enquiries...</div>
+            <ShimmerCardGrid count={6} height="200px" />
           ) : filteredEnquiries.length === 0 ? (
             <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               No enquiries match the current filter or search query.
