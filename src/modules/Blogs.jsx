@@ -11,6 +11,7 @@ import ViewToggle from '../components/ViewToggle';
 import ListView from '../components/ListView';
 import GridView from '../components/GridView';
 import { fetchBlogs, createBlog, updateBlog, deleteBlog, toggleBlogStatus, fetchBlogCategories, createBlogCategory, updateBlogCategory, deleteBlogCategory, showSnackbar } from '../services/api';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 export const Blogs = ({
   blogs: initialBlogs = [],
@@ -497,7 +498,7 @@ export const Blogs = ({
       <Card title="Composed Blog Catalog">
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading blog articles...</div>
+            viewMode === 'grid' ? <ShimmerCardGrid count={6} height="240px" /> : <TableShimmer rows={6} cols={5} />
           ) : viewMode === 'list' ? (
             <ListView
               columns={columns}

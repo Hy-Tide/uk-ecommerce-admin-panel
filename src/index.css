@@ -381,14 +381,13 @@ tr:hover td {
 }
 
 /* Premium Dynamic Shimmer Skeleton Animation */
-.shimmer, .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--border-color) 0%,
-    var(--bg-card-alt) 30%,
-    var(--border-color-hover) 50%,
-    var(--border-color) 100%
-  );
+.shimmer,
+.skeleton {
+  background: linear-gradient(90deg,
+      var(--border-color) 0%,
+      var(--bg-card-alt) 30%,
+      var(--border-color-hover) 50%,
+      var(--border-color) 100%);
   background-size: 800px 100%;
   animation: shimmer-wave 1.4s infinite linear;
   border-radius: var(--radius-md);
@@ -398,6 +397,7 @@ tr:hover td {
   0% {
     background-position: -500px 0;
   }
+
   100% {
     background-position: 500px 0;
   }

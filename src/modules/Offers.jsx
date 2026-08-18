@@ -16,6 +16,7 @@ import {
   fetchOfferProducts, removeProductFromOffer
 } from '../services/api';
 import ImageWithFallback from '../components/ImageWithFallback';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 export const Offers = ({ addToast, products: propProducts = [] }) => {
   const [offers, setOffers] = useState([]);
@@ -579,7 +580,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
       <Card title={`Promotional Offers List (${filteredOffers.length})`}>
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading promotional offers...</div>
+            viewMode === 'grid' ? <ShimmerCardGrid count={6} height="190px" /> : <TableShimmer rows={6} cols={5} />
           ) : filteredOffers.length === 0 ? (
             <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>
               No offers matching the selected criteria.

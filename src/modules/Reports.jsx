@@ -250,27 +250,30 @@ export const Reports = ({ addToast }) => {
 
   // Compute KPI Summary Cards ONLY from real data
   const renderKPIs = () => {
+    // Guard: don't render KPIs while loading or if data is not an array
+    const data = Array.isArray(reportData) ? reportData : [];
+
     if (activeTab === 'search') {
       return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <StatsCard title="Total Customer Searches" value={searchSummary.totalSearches} icon={Search} iconColor="#6366f1" iconBg="#ede9fe" />
+          <StatsCard title="Total Customer Searches" value={searchSummary.totalSearches} icon={Search} iconColor="var(--primary)" iconBg="#ede9fe" />
           <StatsCard title="Zero Result Searches" value={searchSummary.zeroResultSearches} icon={AlertCircle} iconColor="#ef4444" iconBg="#fee2e2" />
           <StatsCard title="Unique Searching Users" value={searchSummary.uniqueUsersCount} icon={Users} iconColor="#0ea5e9" iconBg="#e0f2fe" />
-          <StatsCard title="Tracked Keywords" value={reportData.length} icon={Sparkles} iconColor="#10b981" iconBg="#d1fae5" />
+          <StatsCard title="Tracked Keywords" value={data.length} icon={Sparkles} iconColor="#10b981" iconBg="#d1fae5" />
         </div>
       );
     }
 
     if (activeTab === 'sales') {
-      const grossRev = reportData.reduce((sum, r) => sum + Number(r.total || 0), 0);
-      const subTot = reportData.reduce((sum, r) => sum + Number(r.subTotal || 0), 0);
-      const discounts = reportData.reduce((sum, r) => sum + Number(r.discount || 0), 0);
-      const avgValue = reportData.length > 0 ? (grossRev / reportData.length) : 0;
+      const grossRev = data.reduce((sum, r) => sum + Number(r.total || 0), 0);
+      const subTot = data.reduce((sum, r) => sum + Number(r.subTotal || 0), 0);
+      const discounts = data.reduce((sum, r) => sum + Number(r.discount || 0), 0);
+      const avgValue = data.length > 0 ? (grossRev / data.length) : 0;
 
       return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
           <StatsCard title="Gross Sales Revenue" value={`£${grossRev.toFixed(2)}`} icon={DollarSign} iconColor="#10b981" iconBg="#d1fae5" />
-          <StatsCard title="SubTotal Base" value={`£${subTot.toFixed(2)}`} icon={TrendingUp} iconColor="#6366f1" iconBg="#ede9fe" />
+          <StatsCard title="SubTotal Base" value={`£${subTot.toFixed(2)}`} icon={TrendingUp} iconColor="var(--primary)" iconBg="#ede9fe" />
           <StatsCard title="Avg Order Value (AOV)" value={`£${avgValue.toFixed(2)}`} icon={FileText} iconColor="#0ea5e9" iconBg="#e0f2fe" />
           <StatsCard title="Total Discounts Claimed" value={`£${discounts.toFixed(2)}`} icon={Ticket} iconColor="#f59e0b" iconBg="#fef3c7" />
         </div>
@@ -278,13 +281,13 @@ export const Reports = ({ addToast }) => {
     }
 
     if (activeTab === 'customers') {
-      const totalCust = reportData.length;
-      const totalSpentSum = reportData.reduce((sum, c) => sum + (typeof c.totalSpent === 'number' ? c.totalSpent : parseFloat(String(c.totalSpent || 0).replace(/[^0-9.]/g, '')) || 0), 0);
+      const totalCust = data.length;
+      const totalSpentSum = data.reduce((sum, c) => sum + (typeof c.totalSpent === 'number' ? c.totalSpent : parseFloat(String(c.totalSpent || 0).replace(/[^0-9.]/g, '')) || 0), 0);
       const avgSpent = totalCust > 0 ? totalSpentSum / totalCust : 0;
 
       return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <StatsCard title="Total Customers" value={totalCust} icon={Users} iconColor="#6366f1" iconBg="#ede9fe" />
+          <StatsCard title="Total Customers" value={totalCust} icon={Users} iconColor="var(--primary)" iconBg="#ede9fe" />
           <StatsCard title="Gross Customer Spend" value={`£${totalSpentSum.toFixed(2)}`} icon={DollarSign} iconColor="#10b981" iconBg="#d1fae5" />
           <StatsCard title="Average Lifetime Value" value={`£${avgSpent.toFixed(2)}`} icon={TrendingUp} iconColor="#0ea5e9" iconBg="#e0f2fe" />
         </div>
@@ -292,14 +295,14 @@ export const Reports = ({ addToast }) => {
     }
 
     if (activeTab === 'orders') {
-      const totalOrd = reportData.length;
-      const delivered = reportData.filter(o => o.status === 'Delivered').length;
-      const paid = reportData.filter(o => o.paymentStatus === 'Paid').length;
+      const totalOrd = data.length;
+      const delivered = data.filter(o => o.status === 'Delivered').length;
+      const paid = data.filter(o => o.paymentStatus === 'Paid').length;
       const fulfillmentRate = totalOrd > 0 ? ((delivered / totalOrd) * 100).toFixed(1) : '0';
 
       return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <StatsCard title="Total Orders" value={totalOrd} icon={FileText} iconColor="#6366f1" iconBg="#ede9fe" />
+          <StatsCard title="Total Orders" value={totalOrd} icon={FileText} iconColor="var(--primary)" iconBg="#ede9fe" />
           <StatsCard title="Fulfillment Rate" value={`${fulfillmentRate}%`} icon={CheckCircle} iconColor="#10b981" iconBg="#d1fae5" />
           <StatsCard title="Paid Orders" value={paid} icon={CreditCard} iconColor="#0ea5e9" iconBg="#e0f2fe" />
         </div>
@@ -307,13 +310,13 @@ export const Reports = ({ addToast }) => {
     }
 
     if (activeTab === 'inventory') {
-      const totalSkus = reportData.length;
-      const lowStock = reportData.filter(i => (i.stock || 0) > 0 && (i.stock || 0) < 10).length;
-      const outStock = reportData.filter(i => (i.stock || 0) === 0).length;
+      const totalSkus = data.length;
+      const lowStock = data.filter(i => (i.stock || 0) > 0 && (i.stock || 0) < 10).length;
+      const outStock = data.filter(i => (i.stock || 0) === 0).length;
 
       return (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
-          <StatsCard title="Monitored SKUs" value={totalSkus} icon={Package} iconColor="#6366f1" iconBg="#ede9fe" />
+          <StatsCard title="Monitored SKUs" value={totalSkus} icon={Package} iconColor="var(--primary)" iconBg="#ede9fe" />
           <StatsCard title="Low Stock Items" value={lowStock} icon={Filter} iconColor="#f59e0b" iconBg="#fef3c7" />
           <StatsCard title="Out of Stock Items" value={outStock} icon={Layers} iconColor="#ef4444" iconBg="#fee2e2" />
         </div>
@@ -605,41 +608,98 @@ export const Reports = ({ addToast }) => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FileSpreadsheet size={24} style={{ color: 'var(--primary)' }} /> Admin Analytics & Reports
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px', margin: 0 }}>
-            Audit live backend financial data, tax ledgers, customer lifetime metrics, search analytics, and export data spreadsheets.
-          </p>
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        flexWrap: 'wrap', gap: '16px',
+        background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-app) 100%)',
+        borderRadius: '16px',
+        border: '1px solid var(--border-color)',
+        padding: '24px 28px',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative glows */}
+        <div style={{ position: 'absolute', top: '-40px', right: '80px', width: '200px', height: '200px', background: 'radial-gradient(circle, var(--primary-light) 0%, transparent 70%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-30px', left: '60px', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+        <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+            <div style={{
+              width: '42px', height: '42px', borderRadius: '12px',
+              background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 14px var(--primary-glow)'
+            }}>
+              <BarChart3 size={20} color="#fff" />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '22px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0, color: 'var(--text-primary)' }}>
+                Analytics & Reports
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
+                Live financial data · Tax ledgers · Customer metrics · Search analytics
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Global Export Options */}
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: 'var(--bg-card)', padding: '8px 14px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <Select
-            label=""
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-            options={[
-              { label: 'JSON Data Format', value: 'json' },
-              { label: 'CSV Spreadsheet', value: 'csv' },
-              { label: 'Excel Workbook (.xlsx)', value: 'excel' },
-              { label: 'PDF Document (.pdf)', value: 'pdf' }
-            ]}
-          />
-          <Button variant="primary" size="sm" icon={Download} loading={exporting} onClick={handleExportReport}>
-            Export {activeTab.toUpperCase()} Report
-          </Button>
+        {/* Export Controls */}
+        <div style={{ position: 'relative', display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            backgroundColor: 'var(--bg-app)',
+            borderRadius: '10px',
+            border: '1px solid var(--border-color)',
+            padding: '6px 10px 6px 14px'
+          }}>
+            <Download size={14} style={{ color: 'var(--text-muted)' }} />
+            <select
+              value={format}
+              onChange={(e) => setFormat(e.target.value)}
+              style={{
+                background: 'none', border: 'none', outline: 'none',
+                color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="json">JSON Format</option>
+              <option value="csv">CSV Spreadsheet</option>
+              <option value="excel">Excel (.xlsx)</option>
+              <option value="pdf">PDF Document</option>
+            </select>
+          </div>
+          <button
+            onClick={handleExportReport}
+            disabled={exporting}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '9px 18px',
+              fontSize: '13px', fontWeight: '700',
+              borderRadius: '10px', border: 'none', cursor: 'pointer',
+              background: exporting ? 'var(--border-color)' : 'linear-gradient(135deg, var(--primary), var(--primary-hover))',
+              color: '#fff',
+              boxShadow: exporting ? 'none' : '0 4px 14px var(--primary-glow)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Download size={15} />
+            {exporting ? 'Exporting…' : `Export ${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}`}
+          </button>
         </div>
       </div>
 
-      {/* KPI Cards Summary */}
+      {/* ── KPI Cards ── */}
       {renderKPIs()}
 
-      {/* Report Categories Navigation Tabs */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)' }}>
+      {/* ── Tab Navigation ── */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        padding: '6px',
+        display: 'flex', gap: '4px', overflowX: 'auto'
+      }}>
         {reportTabs.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -648,53 +708,58 @@ export const Reports = ({ addToast }) => {
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: '700',
-                borderRadius: '10px',
-                border: 'none',
-                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '9px 16px',
+                fontSize: '12.5px', fontWeight: '700',
+                borderRadius: '10px', border: 'none', cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                backgroundColor: isActive ? 'var(--primary)' : 'var(--bg-card)',
+                whiteSpace: 'nowrap',
+                background: isActive
+                  ? 'linear-gradient(135deg, var(--primary), var(--primary-hover))'
+                  : 'transparent',
                 color: isActive ? '#fff' : 'var(--text-secondary)',
-                boxShadow: isActive ? '0 2px 10px rgba(79,70,229,0.3)' : '1px solid var(--border-color)',
-                whiteSpace: 'nowrap'
+                boxShadow: isActive ? '0 4px 12px var(--primary-glow)' : 'none',
+                transform: isActive ? 'translateY(-1px)' : 'none'
               }}
             >
-              <Icon size={16} /> {tab.label}
+              <Icon size={14} />
+              {tab.label}
             </button>
           );
         })}
       </div>
 
-      {/* Filter & Date Presets Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', backgroundColor: 'var(--bg-card)', padding: '14px 18px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-
-        {/* Quick Date Presets */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', marginRight: '6px' }}>Range:</span>
+      {/* ── Filter & Date Toolbar ── */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '14px',
+        border: '1px solid var(--border-color)',
+        padding: '16px 20px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexWrap: 'wrap', gap: '14px'
+      }}>
+        {/* Preset pills */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <Calendar size={14} style={{ color: 'var(--text-muted)', marginRight: '4px' }} />
           {[
             { id: 'all', label: 'All Time' },
             { id: 'today', label: 'Today' },
-            { id: '7days', label: 'Last 7 Days' },
-            { id: '30days', label: 'Last 30 Days' },
+            { id: '7days', label: '7 Days' },
+            { id: '30days', label: '30 Days' },
             { id: 'month', label: 'This Month' }
           ].map(p => (
             <button
               key={p.id}
               onClick={() => handlePresetSelect(p.id)}
               style={{
-                padding: '5px 12px',
-                fontSize: '12px',
-                fontWeight: '600',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-                backgroundColor: activePreset === p.id ? 'var(--primary)' : 'var(--bg-app)',
-                color: activePreset === p.id ? '#fff' : 'var(--text-secondary)'
+                padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                borderRadius: '8px', border: 'none', cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                background: activePreset === p.id
+                  ? 'linear-gradient(135deg, var(--primary), var(--primary-hover))'
+                  : 'var(--bg-app)',
+                color: activePreset === p.id ? '#fff' : 'var(--text-secondary)',
+                boxShadow: activePreset === p.id ? '0 2px 8px var(--primary-glow)' : 'none'
               }}
             >
               {p.label}
@@ -702,56 +767,148 @@ export const Reports = ({ addToast }) => {
           ))}
         </div>
 
-        {/* Date Inputs */}
+        {/* Right: date range + search + refresh */}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Input type="date" label="" value={startDate} onChange={(e) => { setStartDate(e.target.value); setActivePreset('custom'); }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>to</span>
-            <Input type="date" label="" value={endDate} onChange={(e) => { setEndDate(e.target.value); setActivePreset('custom'); }} />
-          </div>
-
-          <div style={{ position: 'relative', width: '200px' }}>
-            <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search in ledger..."
+              type="date" value={startDate}
+              onChange={e => { setStartDate(e.target.value); setActivePreset('custom'); }}
               style={{
-                width: '100%',
-                padding: '6px 12px 6px 30px',
-                fontSize: '12px',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)'
+                padding: '7px 10px', fontSize: '12px', borderRadius: '8px',
+                border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)',
+                color: 'var(--text-primary)', outline: 'none'
+              }}
+            />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '600' }}>→</span>
+            <input
+              type="date" value={endDate}
+              onChange={e => { setEndDate(e.target.value); setActivePreset('custom'); }}
+              style={{
+                padding: '7px 10px', fontSize: '12px', borderRadius: '8px',
+                border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)',
+                color: 'var(--text-primary)', outline: 'none'
               }}
             />
           </div>
 
-          <Button variant="outline" size="sm" icon={RefreshCw} onClick={loadReport}>
-            Refresh
-          </Button>
+          <div style={{ position: 'relative' }}>
+            <Search size={13} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text" value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search ledger..."
+              style={{
+                padding: '7px 12px 7px 30px', fontSize: '12px',
+                borderRadius: '8px', border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)',
+                outline: 'none', width: '180px'
+              }}
+            />
+          </div>
+
+          <button
+            onClick={loadReport}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 14px', fontSize: '12px', fontWeight: '600',
+              borderRadius: '8px', border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-app)', color: 'var(--text-secondary)',
+              cursor: 'pointer', transition: 'all 0.15s ease'
+            }}
+          >
+            <RefreshCw size={13} /> Refresh
+          </button>
         </div>
       </div>
 
-      {/* Visual Chart / Graph Section */}
+      {/* ── Charts ── */}
       {renderTabChart()}
 
-      {/* Main Report Table Display */}
-      <Card title={`${reportTabs.find(t => t.key === activeTab)?.label || 'Report'} Ledger (${filteredData.length} records)`}>
-        <div style={{ marginTop: '12px' }}>
+      {/* ── Data Table ── */}
+      <div style={{
+        backgroundColor: 'var(--bg-card)',
+        borderRadius: '16px',
+        border: '1px solid var(--border-color)',
+        overflow: 'hidden'
+      }}>
+        {/* Table header bar */}
+        <div style={{
+          padding: '18px 24px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          borderBottom: '1px solid var(--border-color)',
+          background: 'linear-gradient(135deg, var(--bg-card) 0%, var(--bg-app) 100%)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {(() => {
+              const tab = reportTabs.find(t => t.key === activeTab);
+              const Icon = tab?.icon || FileText;
+              return (
+                <>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    background: 'linear-gradient(135deg, var(--primary), var(--primary-hover))',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Icon size={15} color="#fff" />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {tab?.label || 'Report'} Ledger
+                    </span>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {filteredData.length} record{filteredData.length !== 1 ? 's' : ''} found
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+          {filteredData.length > 0 && (
+            <div style={{
+              padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
+              background: 'var(--primary-light)', color: 'var(--primary)', border: '1px solid var(--primary-glow)'
+            }}>
+              {filteredData.length} rows
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '4px 0' }}>
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
-              <SkeletonRow />
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '8px 0' }}>
+              {[...Array(5)].map((_, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: '16px', padding: '14px 24px',
+                  borderBottom: '1px solid var(--border-color)',
+                  alignItems: 'center',
+                  animation: 'shimmer-wave 1.4s infinite linear',
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)',
+                  backgroundSize: '200% 100%'
+                }}>
+                  {[120, 180, 90, 130, 100].map((w, j) => (
+                    <div key={j} style={{ width: `${w}px`, height: '14px', backgroundColor: 'var(--border-color)', borderRadius: '4px', flexShrink: 0 }} />
+                  ))}
+                </div>
+              ))}
             </div>
           ) : filteredData.length === 0 ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <FileText size={36} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontWeight: '600' }}>No real report records available for the selected timeframe.</span>
+            <div style={{
+              padding: '60px 40px', textAlign: 'center',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'
+            }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '14px',
+                background: 'var(--bg-app)', border: '1px solid var(--border-color)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}>
+                <FileText size={24} style={{ color: 'var(--text-muted)' }} />
+              </div>
+              <span style={{ fontWeight: '700', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                No records found for the selected timeframe
+              </span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Try changing the date range or report type
+              </span>
             </div>
           ) : (
             <ListView
@@ -761,10 +918,11 @@ export const Reports = ({ addToast }) => {
             />
           )}
         </div>
-      </Card>
+      </div>
 
     </div>
   );
 };
 
 export default Reports;
+

@@ -10,6 +10,7 @@ import Input, { Select } from '../components/Input';
 import Badge from '../components/Badge';
 import ListView from '../components/ListView';
 import ViewToggle from '../components/ViewToggle';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 // ─── Coupon type config ───────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -677,21 +678,7 @@ export const Coupons = ({
 
       {/* ── Main content listing ── */}
       {loading ? (
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          padding: '64px 24px', gap: '14px', backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-color)', borderRadius: '16px'
-        }}>
-          <div style={{
-            width: '36px', height: '36px',
-            border: '3px solid var(--border-color)', borderTopColor: 'var(--primary)',
-            borderRadius: '50%', animation: 'spin 0.8s linear infinite'
-          }} />
-          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-            Loading coupons from server...
-          </span>
-        </div>
+        viewMode === 'grid' ? <ShimmerCardGrid count={6} height="200px" /> : <TableShimmer rows={6} cols={6} />
       ) : filtered.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '60px 24px',

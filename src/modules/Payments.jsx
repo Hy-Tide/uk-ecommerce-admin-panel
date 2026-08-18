@@ -17,6 +17,7 @@ import {
   getPaymentById,
   refundPayment
 } from '../services/api';
+import { TableShimmer } from '../components/ShimmerSkeleton';
 
 export const Payments = ({ addToast }) => {
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'failed'
@@ -337,7 +338,7 @@ export const Payments = ({ addToast }) => {
       <Card title={activeTab === 'failed' ? 'Failed Payment Attempts Ledger' : 'All Payments Transaction Ledger'}>
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading payment records...</div>
+            <TableShimmer rows={6} cols={6} />
           ) : payments.length === 0 ? (
             <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>No payment transactions found.</div>
           ) : (

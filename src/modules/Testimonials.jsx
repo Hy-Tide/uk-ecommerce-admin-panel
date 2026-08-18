@@ -18,6 +18,7 @@ import {
   updateTestimonial,
   deleteTestimonial
 } from '../services/api';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 export const Testimonials = ({ addToast }) => {
   const [testimonials, setTestimonials] = useState([]);
@@ -375,7 +376,7 @@ export const Testimonials = ({ addToast }) => {
       <Card title={`Testimonials Ledger (${testimonials.length})`}>
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading customer testimonials...</div>
+            viewMode === 'grid' ? <ShimmerCardGrid count={6} height="180px" /> : <TableShimmer rows={6} cols={5} />
           ) : testimonials.length === 0 ? (
             <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-secondary)' }}>No customer testimonials found.</div>
           ) : viewMode === 'list' ? (

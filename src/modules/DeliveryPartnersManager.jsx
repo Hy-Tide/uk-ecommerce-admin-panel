@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Eye, Power, CheckCircle, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit2, Eye, Power, CheckCircle, Clock, Search, MapPin } from 'lucide-react';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input, { Select } from '../components/Input';
 import Table from '../components/Table';
 import Badge from '../components/Badge';
 import Card from '../components/Card';
+import { ShimmerRow } from '../components/ShimmerSkeleton';
 import {
   fetchDeliveryPartners,
   createDeliveryPartner,
@@ -152,23 +153,55 @@ const DeliveryPartnersManager = ({ addToast }) => {
     setActivePartnerDetails(partner);
     setIsDetailsModalOpen(true);
     setDetailsLoading(true);
+    setActiveAssignments([]);
+    setDeliveryHistory([]);
     const id = partner._id || partner.id;
     try {
-      const [assignmentsRes, historyRes] = await Promise.all([
+      const [assignmentsRes, historyRes] = await Promise.allSettled([
         getPartnerAssignments(id),
         getPartnerHistory(id)
       ]);
-      setActiveAssignments(assignmentsRes?.data?.assignments || assignmentsRes?.data || []);
-      setDeliveryHistory(historyRes?.data?.history || historyRes?.data || []);
+
+      if (assignmentsRes.status === 'fulfilled' && assignmentsRes.value) {
+        const aRes = assignmentsRes.value;
+        const list = aRes?.data?.assignments || aRes?.data || (Array.isArray(aRes) ? aRes : []);
+        if (Array.isArray(list)) setActiveAssignments(list);
+      }
+
+      if (historyRes.status === 'fulfilled' && historyRes.value) {
+        const hRes = historyRes.value;
+        const list = hRes?.data?.history || hRes?.data || (Array.isArray(hRes) ? hRes : []);
+        if (Array.isArray(list)) setDeliveryHistory(list);
+      }
     } catch (err) {
-      addToast('Failed to load partner details', 'error');
+      console.error('Failed to load partner details:', err);
     } finally {
       setDetailsLoading(false);
     }
   };
 
+  const getOrderNumberStr = (orderIdVal) => {
+    if (!orderIdVal) return 'N/A';
+    if (typeof orderIdVal === 'object') {
+      return orderIdVal.orderNumber || orderIdVal.orderId || orderIdVal.id || orderIdVal._id || 'N/A';
+    }
+    const str = String(orderIdVal);
+    return str.length > 6 ? str.slice(-6) : str;
+  };
+
+  const formatHistoryDate = (dateVal) => {
+    if (!dateVal) return 'Recent';
+    try {
+      const d = new Date(dateVal);
+      return isNaN(d.getTime()) ? 'Recent' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      return 'Recent';
+    }
+  };
+
   const getStatusBadgeVariant = (status) => {
-    switch (status) {
+    const s = String(status || '').toUpperCase();
+    switch (s) {
       case 'AVAILABLE': return 'success';
       case 'ON_DELIVERY': return 'warning';
       case 'INACTIVE': return 'danger';
@@ -177,18 +210,18 @@ const DeliveryPartnersManager = ({ addToast }) => {
   };
 
   const columns = [
-    { key: 'name', label: 'Partner Name', render: (row) => <strong style={{color: 'var(--text-primary)'}}>{row.name}</strong> },
+    { key: 'name', label: 'Partner Name', render: (row) => <strong style={{color: 'var(--text-primary)'}}>{row.name || 'Unnamed Partner'}</strong> },
     { key: 'phone', label: 'Contact', render: (row) => (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        <span>{row.phone}</span>
-        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{row.email}</span>
+        <span>{row.phone || 'N/A'}</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{row.email || ''}</span>
       </div>
     )},
-    { key: 'vehicle', label: 'Vehicle', render: (row) => <span>{row.vehicleType} ({row.vehicleNumber})</span> },
+    { key: 'vehicle', label: 'Vehicle', render: (row) => <span>{row.vehicleType || 'Car'} ({row.vehicleNumber || 'N/A'})</span> },
     { key: 'status', label: 'Current Status', render: (row) => (
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
         <Badge variant={getStatusBadgeVariant(row.status)}>
-          {row.status.replace('_', ' ')}
+          {String(row.status || 'AVAILABLE').replace(/_/g, ' ')}
         </Badge>
         {!row.isActive && <Badge variant="danger">Disabled</Badge>}
       </div>
@@ -233,15 +266,29 @@ const DeliveryPartnersManager = ({ addToast }) => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
       <div style={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '600px' }}>
-            <Input
-              placeholder="Search partners by name or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <div style={{ width: '180px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '12px', flex: 1, maxWidth: '540px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+              <input
+                type="text"
+                placeholder="Search partners by name or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 36px',
+                  fontSize: '13px',
+                  borderRadius: '10px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-app)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+            <div style={{ width: '160px' }}>
               <Select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
@@ -254,8 +301,8 @@ const DeliveryPartnersManager = ({ addToast }) => {
               />
             </div>
           </div>
-          <Button variant="primary" icon={Plus} onClick={() => handleOpenModal()}>
-            Add Partner
+          <Button variant="primary" size="sm" icon={Plus} onClick={() => handleOpenModal()}>
+            Add Delivery Partner
           </Button>
         </div>
 
@@ -352,60 +399,75 @@ const DeliveryPartnersManager = ({ addToast }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '24px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
-                {activePartnerDetails.name.charAt(0)}
+                {(activePartnerDetails.name || 'D').charAt(0).toUpperCase()}
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px' }}>{activePartnerDetails.name}</h3>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>{activePartnerDetails.phone} • {activePartnerDetails.vehicleType} ({activePartnerDetails.vehicleNumber})</p>
+                <h3 style={{ margin: 0, fontSize: '18px' }}>{activePartnerDetails.name || 'Delivery Partner'}</h3>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                  {activePartnerDetails.phone || 'No Contact'} • {activePartnerDetails.vehicleType || 'Vehicle'} ({activePartnerDetails.vehicleNumber || 'N/A'})
+                </p>
                 <div style={{ marginTop: '6px' }}>
-                  <Badge variant={getStatusBadgeVariant(activePartnerDetails.status)}>{activePartnerDetails.status.replace('_', ' ')}</Badge>
+                  <Badge variant={getStatusBadgeVariant(activePartnerDetails.status)}>
+                    {String(activePartnerDetails.status || 'AVAILABLE').replace(/_/g, ' ')}
+                  </Badge>
                 </div>
               </div>
             </div>
 
             {detailsLoading ? (
-              <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Loading history...</div>
+              <div style={{ padding: '12px 0' }}>
+                <ShimmerRow count={3} height="60px" />
+              </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
                 <Card title="Currently Assigned Orders">
-                  {activeAssignments.length === 0 ? (
+                  {(!activeAssignments || activeAssignments.length === 0) ? (
                     <p style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '12px 0' }}>No active assignments.</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                      {activeAssignments.map(assignment => (
-                        <div key={assignment.id || assignment._id} style={{ border: '1px solid var(--border-color)', padding: '10px', borderRadius: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                            <strong style={{ fontSize: '13px' }}>Order #{assignment.orderId?.slice(-6) || assignment.orderId}</strong>
-                            <Badge variant="warning">{assignment.status}</Badge>
+                      {activeAssignments.map((assignment, idx) => {
+                        const orderNum = getOrderNumberStr(assignment.orderId || assignment._id || assignment.id);
+                        return (
+                          <div key={assignment.id || assignment._id || idx} style={{ border: '1px solid var(--border-color)', padding: '10px', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                              <strong style={{ fontSize: '13px' }}>Order #{orderNum}</strong>
+                              <Badge variant="warning">{assignment.status || 'Assigned'}</Badge>
+                            </div>
+                            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                              <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                              {assignment.deliveryAddress || 'Address not specified'}
+                            </p>
                           </div>
-                          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                            <MapPin size={12} style={{ display: 'inline', marginRight: '4px' }} />
-                            {assignment.deliveryAddress || 'Address not specified'}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </Card>
 
                 <Card title="Delivery History">
-                  {deliveryHistory.length === 0 ? (
+                  {(!deliveryHistory || deliveryHistory.length === 0) ? (
                     <p style={{ color: 'var(--text-muted)', fontSize: '13px', padding: '12px 0' }}>No delivery history.</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
-                      {deliveryHistory.slice(0, 5).map((history, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', borderBottom: idx < 4 ? '1px solid var(--border-color)' : 'none', paddingBottom: '8px' }}>
-                          <div style={{ color: history.status === 'DELIVERED' ? 'var(--success)' : (history.status === 'FAILED' ? 'var(--danger)' : 'var(--text-secondary)') }}>
-                            {history.status === 'DELIVERED' ? <CheckCircle size={16} /> : <Clock size={16} />}
+                      {deliveryHistory.slice(0, 10).map((history, idx) => {
+                        const orderNum = getOrderNumberStr(history.orderId || history._id || history.id);
+                        const isDelivered = String(history.status || '').toUpperCase() === 'DELIVERED';
+                        const isFailed = String(history.status || '').toUpperCase() === 'FAILED';
+                        const dateText = formatHistoryDate(history.completedAt || history.updatedAt || history.createdAt);
+                        return (
+                          <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', borderBottom: idx < Math.min(deliveryHistory.length, 10) - 1 ? '1px solid var(--border-color)' : 'none', paddingBottom: '8px' }}>
+                            <div style={{ color: isDelivered ? 'var(--success)' : (isFailed ? 'var(--danger)' : 'var(--text-secondary)') }}>
+                              {isDelivered ? <CheckCircle size={16} /> : <Clock size={16} />}
+                            </div>
+                            <div>
+                              <p style={{ margin: 0, fontSize: '13px', fontWeight: '500' }}>Order #{orderNum}</p>
+                              <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
+                                {dateText} • {history.status || 'Completed'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p style={{ margin: 0, fontSize: '13px', fontWeight: '500' }}>Order #{history.orderId?.slice(-6) || history.orderId}</p>
-                            <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
-                              {new Date(history.completedAt || history.updatedAt).toLocaleString()} • {history.status}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </Card>

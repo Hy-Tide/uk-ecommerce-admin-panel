@@ -12,6 +12,7 @@ import ListView from '../components/ListView';
 import GridView from '../components/GridView';
 import ViewToggle from '../components/ViewToggle';
 import Badge from '../components/Badge';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 import {
   fetchRoles,
   createRole,
@@ -47,6 +48,54 @@ const AVAILABLE_PERMISSIONS = [
   { key: 'manage_settings', label: 'Manage System Settings' },
   { key: 'manage_users', label: 'Manage Operating Staff Users' }
 ];
+
+// Reusable Status Toggle Switch component
+const StatusToggleSwitch = ({ isChecked, onToggle, disabled, title }) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={isChecked}
+    disabled={disabled}
+    title={title || (isChecked ? 'Deactivate Account' : 'Activate Account')}
+    onClick={(e) => {
+      e.stopPropagation();
+      if (!disabled && onToggle) onToggle();
+    }}
+    style={{
+      position: 'relative',
+      display: 'inline-flex',
+      alignItems: 'center',
+      width: '40px',
+      height: '22px',
+      borderRadius: '12px',
+      border: 'none',
+      backgroundColor: disabled
+        ? 'var(--border-color)'
+        : isChecked
+          ? 'var(--success, #10b981)'
+          : '#cbd5e1',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      transition: 'background-color 0.2s ease, box-shadow 0.2s ease',
+      padding: '2px',
+      outline: 'none',
+      opacity: disabled ? 0.5 : 1,
+      boxShadow: isChecked && !disabled ? '0 0 6px rgba(16, 185, 129, 0.4)' : 'none'
+    }}
+  >
+    <span
+      style={{
+        display: 'block',
+        width: '18px',
+        height: '18px',
+        borderRadius: '50%',
+        backgroundColor: '#ffffff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
+        transform: isChecked ? 'translateX(18px)' : 'translateX(0px)',
+        transition: 'transform 0.2s ease-in-out'
+      }}
+    />
+  </button>
+);
 
 export const UserManagement = ({
   users: propUsers = [],
@@ -379,11 +428,11 @@ export const UserManagement = ({
     if (!u) return false;
     const rName = getRoleName(u.role_id).toLowerCase();
     const uRole = (u.role || '').toLowerCase();
-    const isSuper = 
-      rName === 'super admin' || 
-      rName === 'admin' || 
-      uRole === 'super admin' || 
-      uRole === 'admin' || 
+    const isSuper =
+      rName === 'super admin' ||
+      rName === 'admin' ||
+      uRole === 'super admin' ||
+      uRole === 'admin' ||
       (u.email && u.email.toLowerCase() === 'admin@demo.com');
     return isSuper;
   };
@@ -428,7 +477,25 @@ export const UserManagement = ({
       label: 'Account Status',
       render: (row) => {
         const isAct = (row.status || 'active').toLowerCase() === 'active';
-        return <Badge variant={isAct ? 'success' : 'secondary'}>{isAct ? 'Active' : 'Inactive'}</Badge>;
+        const isSuperAdmin = checkIsSuperAdmin(row);
+        return (
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px' }}>
+            <StatusToggleSwitch
+              isChecked={isAct}
+              onToggle={() => handleToggleUserStatus(row)}
+              disabled={isSuperAdmin}
+              title={isSuperAdmin ? 'Super Admin status is locked' : isAct ? 'Click to deactivate staff user' : 'Click to activate staff user'}
+            />
+            <Badge variant={isAct ? 'success' : 'secondary'} style={{ fontSize: '11px', textTransform: 'capitalize' }}>
+              {isAct ? 'Active' : 'Inactive'}
+            </Badge>
+            {isSuperAdmin && (
+              <span title="Super Admin account (Protected)" style={{ color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center' }}>
+                <Lock size={12} />
+              </span>
+            )}
+          </div>
+        );
       }
     },
     {
@@ -446,19 +513,73 @@ export const UserManagement = ({
       render: (row) => {
         const isSuperAdmin = checkIsSuperAdmin(row);
         return (
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <Button variant="outline" size="sm" icon={Edit} onClick={() => handleOpenEditUser(row)}>
-              Edit
-            </Button>
-            {!isSuperAdmin && (
-              <>
-                <Button variant="ghost" size="sm" onClick={() => handleToggleUserStatus(row)}>
-                  Toggle Status
-                </Button>
-                <Button variant="ghost" size="sm" icon={Trash2} style={{ color: 'var(--danger)' }} onClick={() => handleDeleteAdminUser(row)}>
-                  Delete
-                </Button>
-              </>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => handleOpenEditUser(row)}
+              title="Edit Staff Member Details"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--primary)';
+                e.currentTarget.style.color = 'var(--primary)';
+                e.currentTarget.style.backgroundColor = 'var(--primary-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-card)';
+              }}
+            >
+              <Edit size={14} /> Edit
+            </button>
+
+            {!isSuperAdmin ? (
+              <button
+                onClick={() => handleDeleteAdminUser(row)}
+                title="Delete Admin Staff User"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                  color: 'var(--danger)',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--danger)';
+                  e.currentTarget.style.color = '#ffffff';
+                  e.currentTarget.style.borderColor = 'var(--danger)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.06)';
+                  e.currentTarget.style.color = 'var(--danger)';
+                  e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                }}
+              >
+                <Trash2 size={14} /> Delete
+              </button>
+            ) : (
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic', paddingLeft: '4px' }}>
+                Protected
+              </span>
             )}
           </div>
         );
@@ -558,7 +679,7 @@ export const UserManagement = ({
         }>
           <div style={{ marginTop: '12px' }}>
             {loadingUsers ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading admin users...</div>
+              viewMode === 'grid' ? <ShimmerCardGrid count={6} height="160px" /> : <TableShimmer rows={5} cols={5} />
             ) : filteredUsers.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>No admin users found matching filter.</div>
             ) : viewMode === 'list' ? (
@@ -574,12 +695,87 @@ export const UserManagement = ({
                 titleKey="name"
                 subtitleKey="email"
                 statusKey="status"
-                renderActions={item => (
-                  <>
-                    <Badge variant={item.status === 'active' ? 'success' : 'secondary'}>{item.status}</Badge>
-                    <Button variant="outline" size="sm" icon={Edit} onClick={() => handleOpenEditUser(item)}>Edit</Button>
-                  </>
-                )}
+                renderActions={item => {
+                  const isAct = (item.status || 'active').toLowerCase() === 'active';
+                  const isSuperAdmin = checkIsSuperAdmin(item);
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <StatusToggleSwitch
+                          isChecked={isAct}
+                          onToggle={() => handleToggleUserStatus(item)}
+                          disabled={isSuperAdmin}
+                          title={isSuperAdmin ? 'Super Admin status is locked' : isAct ? 'Click to deactivate staff user' : 'Click to activate staff user'}
+                        />
+                        <Badge variant={isAct ? 'success' : 'secondary'}>{isAct ? 'Active' : 'Inactive'}</Badge>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          onClick={() => handleOpenEditUser(item)}
+                          title="Edit Staff Member Details"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            padding: '5px 10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                            e.currentTarget.style.backgroundColor = 'var(--primary-light)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.backgroundColor = 'var(--bg-card)';
+                          }}
+                        >
+                          <Edit size={13} /> Edit
+                        </button>
+
+                        {!isSuperAdmin && (
+                          <button
+                            onClick={() => handleDeleteAdminUser(item)}
+                            title="Delete Staff User"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                              color: 'var(--danger)',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'var(--danger)';
+                              e.currentTarget.style.color = '#ffffff';
+                              e.currentTarget.style.borderColor = 'var(--danger)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.06)';
+                              e.currentTarget.style.color = 'var(--danger)';
+                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                            }}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                }}
                 initialRowsPerPage={8}
               />
             )}
@@ -597,7 +793,7 @@ export const UserManagement = ({
         }>
           <div style={{ marginTop: '12px' }}>
             {loadingRoles ? (
-              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading system roles...</div>
+              <ShimmerCardGrid count={4} height="180px" />
             ) : roles.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>No roles configured.</div>
             ) : (
@@ -635,15 +831,79 @@ export const UserManagement = ({
                     </div>
 
                     {/* Role Actions */}
-                    <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                      <Button variant="ghost" size="sm" icon={Edit} onClick={() => handleOpenEditRole(role)}>
-                        Edit Role
-                      </Button>
-                      {!role.isSystem && (
-                        <Button variant="ghost" size="sm" icon={Trash2} style={{ color: 'var(--danger)' }} onClick={() => handleDeleteRole(role)}>
-                          Delete
-                        </Button>
-                      )}
+                    <div style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {role.isSystem ? (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Lock size={11} /> System Protected
+                          </span>
+                        ) : (
+                          'Custom Role'
+                        )}
+                      </span>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleOpenEditRole(role)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            padding: '5px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-card)',
+                            color: 'var(--text-primary)',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--primary)';
+                            e.currentTarget.style.color = 'var(--primary)';
+                            e.currentTarget.style.backgroundColor = 'var(--primary-light)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border-color)';
+                            e.currentTarget.style.color = 'var(--text-primary)';
+                            e.currentTarget.style.backgroundColor = 'var(--bg-card)';
+                          }}
+                        >
+                          <Edit size={13} /> Edit Role
+                        </button>
+                        {!role.isSystem && (
+                          <button
+                            onClick={() => handleDeleteRole(role)}
+                            title="Delete Role"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '5px',
+                              padding: '5px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid rgba(239, 68, 68, 0.25)',
+                              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+                              color: 'var(--danger)',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = 'var(--danger)';
+                              e.currentTarget.style.color = '#ffffff';
+                              e.currentTarget.style.borderColor = 'var(--danger)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.06)';
+                              e.currentTarget.style.color = 'var(--danger)';
+                              e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+                            }}
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                   </div>
@@ -768,7 +1028,7 @@ export const UserManagement = ({
             options={roles
               .filter(r => {
                 const isSuper = r.name && (
-                  r.name.toLowerCase() === 'admin' || 
+                  r.name.toLowerCase() === 'admin' ||
                   r.name.toLowerCase() === 'super admin' ||
                   (r.description && r.description.toLowerCase().includes('super administrator'))
                 );

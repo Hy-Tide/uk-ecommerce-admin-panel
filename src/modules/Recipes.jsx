@@ -11,6 +11,7 @@ import ListView from '../components/ListView';
 import GridView from '../components/GridView';
 import ViewToggle from '../components/ViewToggle';
 import { fetchRecipes, createRecipe, updateRecipe, deleteRecipe, toggleRecipeStatus, fetchCuisines, createCuisine, updateCuisine, deleteCuisine, showSnackbar, fetchAllProducts } from '../services/api';
+import { TableShimmer, ShimmerCardGrid } from '../components/ShimmerSkeleton';
 
 export const Recipes = ({
   recipes: initialRecipes = [],
@@ -583,7 +584,7 @@ export const Recipes = ({
       <Card title="Published Recipe Catalog">
         <div style={{ marginTop: '12px' }}>
           {loading ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading recipes...</div>
+            viewMode === 'grid' ? <ShimmerCardGrid count={6} height="200px" /> : <TableShimmer rows={6} cols={5} />
           ) : viewMode === 'list' ? (
             <ListView
               columns={columns}
