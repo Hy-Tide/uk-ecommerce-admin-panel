@@ -410,7 +410,7 @@ export const Categories = ({
         {
           id: `log-${Date.now()}`,
           timestamp: new Date().toISOString(),
-          user: 'Mugesh',
+          user: 'Admin',
           action: editingCategory ? 'Category Edited' : 'Category Created',
           module: 'Categories',
           detail: `${editingCategory ? 'Modified' : 'Added'} category: ${name}`
@@ -456,7 +456,7 @@ export const Categories = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Mugesh',
+        user: 'Admin',
         action: 'Category Deleted',
         module: 'Categories',
         detail: `Deleted category: ${toDelete?.name}`
@@ -590,7 +590,7 @@ export const Categories = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Mugesh',
+        user: 'Admin',
         action: 'Category Hierarchy Reordered',
         module: 'Categories',
         detail: `Moved category '${draggingItem.name}' via drag & drop`

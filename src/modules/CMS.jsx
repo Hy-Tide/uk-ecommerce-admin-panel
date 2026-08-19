@@ -42,7 +42,7 @@ export const CMS = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Mugesh',
+        user: 'Admin',
         action: 'Homepage Layout Published',
         module: 'CMS',
         detail: 'Published homepage updates: Hero widgets & announcements'

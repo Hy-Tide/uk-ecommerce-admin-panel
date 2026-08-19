@@ -199,7 +199,7 @@ export const Orders = ({
     setActiveOrder(updated);
     setAuditLogs([{
       id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
-      user: 'Mugesh', action: 'Order Status Update',
+      user: 'Admin', action: 'Order Status Update',
       module: 'Orders', detail: `Updated order #${activeOrder.id} to ${statusValue}`
     }, ...auditLogs]);
     addToast(`Order status → ${statusValue}`, 'success');

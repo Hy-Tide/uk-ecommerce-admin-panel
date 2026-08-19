@@ -203,7 +203,7 @@ export const Banners = ({
             {
               id: `log-${Date.now()}`,
               timestamp: new Date().toISOString(),
-              user: 'Mugesh',
+              user: 'Admin',
               action: isMock ? 'Banner Created' : 'Banner Updated',
               module: 'Banners',
               detail: `${isMock ? 'Created' : 'Updated'} page banner "${title}" for page: ${pageType}`
@@ -353,7 +353,7 @@ export const Banners = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
         <div>
@@ -473,7 +473,7 @@ export const Banners = ({
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Created: {new Date(banner.createdAt).toLocaleDateString()}</span>
                 </div>
 
-                
+
                 {/* Switch Active Toggle & Edit Button Footer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -489,7 +489,7 @@ export const Banners = ({
                       <span style={{ position: 'absolute', content: '""', height: '14px', width: '14px', left: banner.is_active ? '17px' : '3px', bottom: '2px', backgroundColor: '#ffffff', transition: 'all 0.3s ease', borderRadius: '50%' }} />
                     </label>
                   </div>
-                  
+
                   <Button variant="outline" size="sm" icon={Edit} onClick={() => openEditDrawer(banner)} title="Edit Banner Configuration" />
                 </div>
               </div>
@@ -513,7 +513,7 @@ export const Banners = ({
         }
       >
         <form onSubmit={handleSaveBanner} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Page Location (Read-Only)</label>
             <div style={{ padding: '10px 12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-app)', textTransform: 'capitalize', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>
@@ -542,7 +542,7 @@ export const Banners = ({
           {/* Premium Image Uploader with File Drop and Preview */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Banner Cover Image *</span>
-            
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <label
                 style={{

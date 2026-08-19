@@ -859,7 +859,7 @@ export const Products = ({
         {
           id: `log-${Date.now()}`,
           timestamp: new Date().toISOString(),
-          user: 'Mugesh',
+          user: 'Admin',
           action: selectedProduct ? 'Product Edited' : 'Product Created',
           module: 'Products',
           detail: `${selectedProduct ? 'Modified' : 'Added new'} product: ${formName}`
@@ -894,7 +894,7 @@ export const Products = ({
       {
         id: `log-${Date.now()}`,
         timestamp: new Date().toISOString(),
-        user: 'Mugesh',
+        user: 'Admin',
         action: 'Product Deleted',
         module: 'Products',
         detail: `Removed product: ${deleted?.name}`

@@ -207,6 +207,7 @@ const HomeConfiguration = ({
 
   // New Draft State
   const [draft, setDraft] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // Selector pagination & search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -302,6 +303,7 @@ const HomeConfiguration = ({
   const handleSelectSection = (section) => {
     setSelectedSectionId(section.id);
     setDraft({ ...section });
+    setIsEditing(false);
   };
 
   const handleOpenPreview = () => {
@@ -326,6 +328,7 @@ const HomeConfiguration = ({
     };
     setSelectedSectionId(newSection.id);
     setDraft(newSection);
+    setIsEditing(true);
   };
 
   const handleSectionTypeChange = (e) => {
@@ -404,11 +407,13 @@ const HomeConfiguration = ({
           updatedSections.push(savedSection);
           setDraft(savedSection);
           setSelectedSectionId(newId);
+          setIsEditing(false);
         }
       } else {
         const { updateHomeConfig } = await import('../services/api');
         await updateHomeConfig(draft.id, hasFile ? formData : payload);
         updatedSections = updatedSections.map(s => s.id === draft.id ? { ...draft, isDraft: false } : s);
+        setIsEditing(false);
       }
 
       const sorted = [...updatedSections].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
@@ -499,6 +504,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, e.target.value)} 
             placeholder={field.placeholder}
             required={field.required}
+            disabled={!isEditing}
           />
         );
       case 'textarea':
@@ -509,6 +515,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, e.target.value)} 
             rows={4}
             required={field.required}
+            disabled={!isEditing}
           />
         );
       case 'select':
@@ -519,6 +526,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, e.target.value)}
             options={field.options.map(o => ({ value: o, label: o }))}
             required={field.required}
+            disabled={!isEditing}
           />
         );
       case 'categorySelect':
@@ -529,6 +537,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
             options={categories.map(c => ({ value: c.id, label: c.name }))}
             multiple
+            disabled={!isEditing}
           />
         );
       case 'brandSelect':
@@ -539,6 +548,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
             options={brands.map(c => ({ value: c.id, label: c.name }))}
             multiple
+            disabled={!isEditing}
           />
         );
       case 'productSelect':
@@ -549,6 +559,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
             options={products.map(c => ({ value: c.id, label: c.name }))}
             multiple
+            disabled={!isEditing}
           />
         );
       case 'recipeSelect':
@@ -559,6 +570,7 @@ const HomeConfiguration = ({
             onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
             options={recipes.map(c => ({ value: c.id, label: c.name }))}
             multiple
+            disabled={!isEditing}
           />
         );
       case 'image':
@@ -567,10 +579,59 @@ const HomeConfiguration = ({
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
               {field.label} {field.required && '*'}
             </label>
-            <Uploader 
-              onUpload={(file) => onChange(field.name, file)} 
-              previewUrl={typeof value === 'string' ? value : (value instanceof File ? URL.createObjectURL(value) : null)} 
-            />
+            {isEditing && (
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    onChange(field.name, e.target.files[0]);
+                  }
+                }} 
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-app)',
+                  cursor: 'pointer'
+                }}
+              />
+            )}
+            {value && (
+              <div style={{ marginTop: '8px', position: 'relative', display: 'inline-block' }}>
+                <img 
+                  src={typeof value === 'string' ? value : (value instanceof File ? URL.createObjectURL(value) : '')} 
+                  alt="Preview" 
+                  style={{ height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+                />
+                {isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => onChange(field.name, '')}
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      background: 'var(--danger)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '20px',
+                      height: '20px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px'
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         );
       case 'checkbox':
@@ -581,6 +642,7 @@ const HomeConfiguration = ({
               checked={!!value} 
               onChange={e => onChange(field.name, e.target.checked)} 
               style={{ width: '16px', height: '16px', accentColor: 'var(--primary)' }}
+              disabled={!isEditing}
             />
             <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{field.label}</label>
           </div>
@@ -597,20 +659,25 @@ const HomeConfiguration = ({
       <div style={{ marginBottom: '20px', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '10px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
           <h4 style={{ fontSize: '14px', fontWeight: '700' }}>{field.label}</h4>
-          <Button size="sm" variant="outline" icon={Plus} onClick={() => onChange(field.name, [...list, {}])}>Add Item</Button>
+          {isEditing && (
+            <Button size="sm" variant="outline" icon={Plus} onClick={() => onChange(field.name, [...list, {}])}>Add Item</Button>
+          )}
         </div>
         {list.map((item, idx) => (
           <div key={idx} style={{ padding: '16px', background: 'var(--bg-muted)', borderRadius: '8px', marginBottom: '12px', position: 'relative' }}>
-            <button 
-              onClick={() => onChange(field.name, list.filter((_, i) => i !== idx))}
-              style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
-            >
-              <Trash2 size={16} />
-            </button>
+            {isEditing && (
+              <button 
+                onClick={() => onChange(field.name, list.filter((_, i) => i !== idx))}
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
             <div style={{ display: 'grid', gap: '12px' }}>
               {field.itemFields.map(f => (
                 <div key={f.name}>
                   {renderField(f, item[f.name], (name, val) => {
+                    if (!isEditing) return;
                     const newList = [...list];
                     newList[idx] = { ...newList[idx], [name]: val };
                     onChange(field.name, newList);
@@ -721,11 +788,24 @@ const HomeConfiguration = ({
 
         {/* Right Pane - Dynamic Editor */}
         {draft ? (
-          <Card title={`Edit: ${draft.title || 'Draft'}`} 
+          <Card title={`${isEditing ? 'Edit:' : 'View:'} ${draft.title || 'Draft'}`} 
             actions={
-              <Button size="sm" variant="primary" icon={Save} onClick={handleSaveDraft} loading={saving}>
-                Save Section
-              </Button>
+              isEditing ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {!draft.isDraft && (
+                    <Button size="sm" variant="outline" onClick={() => { setDraft(sections.find(s => s.id === draft.id)); setIsEditing(false); }}>
+                      Cancel
+                    </Button>
+                  )}
+                  <Button size="sm" variant="primary" icon={Save} onClick={handleSaveDraft} loading={saving}>
+                    Save Section
+                  </Button>
+                </div>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+                  Edit
+                </Button>
+              )
             }
           >
             <div style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '24px' }}>
@@ -738,12 +818,14 @@ const HomeConfiguration = ({
                   value={draft.sectionType}
                   onChange={handleSectionTypeChange}
                   options={SECTION_TYPES.map(t => ({ value: t, label: SECTION_CONFIG[t]?.label || t }))}
+                  disabled={!draft.isDraft || !isEditing}
                 />
                 <Input
                   label="Display Order"
                   type="number"
                   value={draft.displayOrder}
                   onChange={(e) => updateDraftField('displayOrder', parseInt(e.target.value, 10))}
+                  disabled={!isEditing}
                 />
               </div>
               

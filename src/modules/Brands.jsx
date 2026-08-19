@@ -302,7 +302,7 @@ export const Brands = ({
 
       setAuditLogs([{
         id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
-        user: 'Mugesh',
+        user: 'Admin',
         action: editingBrand ? 'Brand Settings Edited' : 'Brand Added',
         module: 'Brands',
         detail: `${editingBrand ? 'Updated' : 'Created'} brand: ${name}`
@@ -372,7 +372,7 @@ export const Brands = ({
     addToast('Brand deleted successfully', 'warning');
     setAuditLogs([{
       id: `log-${Date.now()}`, timestamp: new Date().toISOString(),
-      user: 'Mugesh', action: 'Brand Deleted',
+      user: 'Admin', action: 'Brand Deleted',
       module: 'Brands', detail: `Removed brand: ${deleted?.name}`
     }, ...auditLogs]);
   };
