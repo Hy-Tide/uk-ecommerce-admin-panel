@@ -149,13 +149,13 @@ export const Payments = ({ addToast }) => {
   const getStatusBadge = (st) => {
     const s = (st || '').toLowerCase();
     if (s === 'completed' || s === 'succeeded' || s === 'paid') {
-      return <Badge variant="success">Completed</Badge>;
+      return <Badge variant="success">{st || 'Paid'}</Badge>;
     }
     if (s === 'failed' || s === 'declined') {
-      return <Badge variant="danger">Failed</Badge>;
+      return <Badge variant="danger">{st || 'Failed'}</Badge>;
     }
     if (s === 'refunded' || s === 'partially_refunded') {
-      return <Badge variant="warning">Refunded</Badge>;
+      return <Badge variant="warning">{st || 'Refunded'}</Badge>;
     }
     return <Badge variant="secondary">{st || 'Pending'}</Badge>;
   };
@@ -171,10 +171,10 @@ export const Payments = ({ addToast }) => {
       render: (row) => (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ fontWeight: '700', fontFamily: 'monospace', fontSize: '12px', color: 'var(--primary)' }}>
-            {row.transactionId || row._id || row.paymentIntentId || 'TXN-99120'}
+            {row.stripePaymentIntentId || row.transactionId || row._id || 'TXN-99120'}
           </span>
           <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            Order #{row.orderNumber || row.orderId || 'ORD-1002'}
+            Order #{row.orderId?.orderNumber || row.orderNumber || (typeof row.orderId === 'string' ? row.orderId : 'ORD-1002')}
           </span>
         </div>
       )
@@ -182,16 +182,20 @@ export const Payments = ({ addToast }) => {
     {
       key: 'customer',
       label: 'Customer Info',
-      render: (row) => (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
-            {row.customerName || row.name || row.customerEmail || 'Customer'}
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-            {row.customerEmail || row.email || 'customer@uk.com'}
-          </span>
-        </div>
-      )
+      render: (row) => {
+        const name = row.checkoutData?.shippingAddress ? `${row.checkoutData.shippingAddress.firstName} ${row.checkoutData.shippingAddress.lastName}` : (row.customerName || row.name || 'Customer');
+        const email = row.userId?.email || row.checkoutData?.shippingAddress?.email || row.customerEmail || row.email || 'customer@uk.com';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-primary)' }}>
+              {name}
+            </span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+              {email}
+            </span>
+          </div>
+        );
+      }
     },
     {
       key: 'paymentMethod',
@@ -233,7 +237,7 @@ export const Payments = ({ addToast }) => {
           <Button variant="outline" size="sm" icon={Eye} onClick={() => handleOpenDetail(row)}>
             Details
           </Button>
-          {((row.status || '').toLowerCase() === 'completed' || (row.status || '').toLowerCase() === 'succeeded') && (
+          {((row.status || '').toLowerCase() === 'completed' || (row.status || '').toLowerCase() === 'succeeded' || (row.status || '').toLowerCase() === 'paid') && (
             <Button variant="ghost" size="sm" icon={RotateCcw} style={{ color: 'var(--warning)' }} onClick={() => handleOpenRefundModal(row)}>
               Refund
             </Button>
@@ -372,19 +376,19 @@ export const Payments = ({ addToast }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Transaction ID:</span>
-                <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{selectedPayment.transactionId || selectedPayment._id}</span>
+                <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{selectedPayment._id || selectedPayment.transactionId}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Stripe Intent:</span>
-                <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{selectedPayment.paymentIntentId || 'pi_3M00921049'}</span>
+                <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{selectedPayment.stripePaymentIntentId || selectedPayment.paymentIntentId || 'pi_3M00921049'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Customer Name:</span>
-                <span style={{ fontWeight: '600' }}>{selectedPayment.customerName || selectedPayment.name || 'Customer'}</span>
+                <span style={{ fontWeight: '600' }}>{selectedPayment.checkoutData?.shippingAddress ? `${selectedPayment.checkoutData.shippingAddress.firstName} ${selectedPayment.checkoutData.shippingAddress.lastName}` : (selectedPayment.customerName || selectedPayment.name || 'Customer')}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Customer Email:</span>
-                <span style={{ fontWeight: '600' }}>{selectedPayment.customerEmail || selectedPayment.email || 'customer@uk.com'}</span>
+                <span style={{ fontWeight: '600' }}>{selectedPayment.userId?.email || selectedPayment.checkoutData?.shippingAddress?.email || selectedPayment.customerEmail || selectedPayment.email || 'customer@uk.com'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-secondary)' }}>Payment Method:</span>
@@ -392,7 +396,7 @@ export const Payments = ({ addToast }) => {
               </div>
             </div>
 
-            {((selectedPayment.status || '').toLowerCase() === 'completed' || (selectedPayment.status || '').toLowerCase() === 'succeeded') && (
+            {((selectedPayment.status || '').toLowerCase() === 'completed' || (selectedPayment.status || '').toLowerCase() === 'succeeded' || (selectedPayment.status || '').toLowerCase() === 'paid') && (
               <Button
                 variant="primary"
                 size="sm"
