@@ -77,7 +77,7 @@ const SECTION_CONFIG = {
     label: 'Limited Products',
     fields: [
       { name: 'title', label: 'Section Title', type: 'text', required: true },
-      { name: 'selectedProductIds', label: 'Product Selection', type: 'productSelect' },
+      { name: 'infoNote', label: 'Products in this section are automatically fetched.', type: 'info' },
       { name: 'productLimit', label: 'Display Limit', type: 'number', defaultValue: 8 },
     ]
   },
@@ -649,6 +649,12 @@ const HomeConfiguration = ({
               disabled={!isEditing}
             />
             <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{field.label}</label>
+          </div>
+        );
+      case 'info':
+        return (
+          <div style={{ padding: '12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#2563eb', borderRadius: '8px', fontSize: '13px', border: '1px solid rgba(59, 130, 246, 0.2)', marginBottom: '16px' }}>
+            <strong>Note: </strong> {field.label}
           </div>
         );
       default:
