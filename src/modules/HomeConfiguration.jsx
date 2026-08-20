@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import Button from '../components/Button';
 import Card from '../components/Card';
-import Input, { Select, Textarea, Checkbox } from '../components/Input';
+import Input, { Select, Textarea, Checkbox, MultiSelect } from '../components/Input';
 import Uploader from '../components/Uploader';
 import Modal from '../components/Modal';
 import CmsPreview from './CmsPreview';
@@ -531,45 +531,41 @@ const HomeConfiguration = ({
         );
       case 'categorySelect':
         return (
-          <Select 
+          <MultiSelect 
             label={field.label} 
             value={value || []} 
-            onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
+            onChange={e => onChange(field.name, e)}
             options={categories.map(c => ({ value: c.id, label: c.name }))}
-            multiple
             disabled={!isEditing}
           />
         );
       case 'brandSelect':
         return (
-          <Select 
+          <MultiSelect 
             label={field.label} 
             value={value || []} 
-            onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
+            onChange={e => onChange(field.name, e)}
             options={brands.map(c => ({ value: c.id, label: c.name }))}
-            multiple
             disabled={!isEditing}
           />
         );
       case 'productSelect':
         return (
-          <Select 
+          <MultiSelect 
             label={field.label} 
             value={value || []} 
-            onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
+            onChange={e => onChange(field.name, e)}
             options={products.map(c => ({ value: c.id, label: c.name }))}
-            multiple
             disabled={!isEditing}
           />
         );
       case 'recipeSelect':
         return (
-          <Select 
+          <MultiSelect 
             label={field.label} 
             value={value || []} 
-            onChange={e => onChange(field.name, Array.from(e.target.selectedOptions, option => option.value))}
+            onChange={e => onChange(field.name, e)}
             options={recipes.map(c => ({ value: c.id, label: c.name }))}
-            multiple
             disabled={!isEditing}
           />
         );

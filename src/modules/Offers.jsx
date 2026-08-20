@@ -35,6 +35,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
   const [title, setTitle] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [announcementText, setAnnouncementText] = useState('');
   const [bannerImage, setBannerImage] = useState('');
   const [bannerFile, setBannerFile] = useState(null);
   const [bannerPreview, setBannerPreview] = useState('');
@@ -169,6 +170,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
     setTitle('');
     setName('');
     setDescription('');
+    setAnnouncementText('');
     setBannerImage('');
     setBannerFile(null);
     setBannerPreview('');
@@ -185,6 +187,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
     setTitle(off.title || off.name || '');
     setName(off.name || off.title || '');
     setDescription(off.description || '');
+    setAnnouncementText(off.announcementText || '');
     setBannerImage(off.bannerImage || '');
     setBannerFile(null);
     setBannerPreview(off.bannerImage || '');
@@ -339,6 +342,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
       name: name.trim() || title.trim(),
       title: title.trim() || name.trim(),
       description: description.trim(),
+      announcementText: announcementText.trim(),
       bannerImage: bannerPreview || bannerImage.trim(),
       startDate: startIso,
       endDate: endIso,
@@ -355,6 +359,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
         formData.append('name', name.trim() || title.trim());
         formData.append('title', title.trim() || name.trim());
         formData.append('description', description.trim());
+        formData.append('announcementText', announcementText.trim());
         formData.append('bannerImage', bannerFile);
         formData.append('startDate', startIso);
         formData.append('endDate', endIso);
@@ -600,6 +605,7 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                     <div>
                       <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', display: 'block' }}>{row.title || row.name}</span>
                       <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{row.description}</span>
+                      {row.announcementText && <span style={{ fontSize: '10px', color: 'var(--primary)', display: 'block', marginTop: '2px', fontWeight: '600' }}>📣 {row.announcementText}</span>}
                     </div>
                   )
                 },
@@ -757,6 +763,11 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
                       <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.4' }}>
                         {off.description || 'Festive and seasonal grocery offer.'}
                       </p>
+                      {off.announcementText && (
+                        <p style={{ fontSize: '11px', color: 'var(--primary)', margin: '4px 0 0 0', fontWeight: '600' }}>
+                          📣 {off.announcementText}
+                        </p>
+                      )}
 
                       {/* Mapped Products Action Banner */}
                       <div
@@ -836,6 +847,14 @@ export const Offers = ({ addToast, products: propProducts = [] }) => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Get exciting discounts on groceries, snacks, beverages, and daily essentials..."
+          />
+
+          <Textarea
+            label="Announcement Text"
+            rows={2}
+            value={announcementText}
+            onChange={(e) => setAnnouncementText(e.target.value)}
+            placeholder="Flash Sale! 50% off on all items..."
           />
 
           <div>

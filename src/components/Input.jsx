@@ -505,3 +505,133 @@ export const Radio = ({
   );
 };
 export default Input;
+// MultiSelect
+export const MultiSelect = ({
+  label,
+  value = [],
+  onChange,
+  options = [], 
+  disabled = false,
+  error = '',
+  className = '',
+  id,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleOption = (optValue) => {
+    if (disabled) return;
+    const current = Array.isArray(value) ? value : [];
+    if (current.includes(optValue)) {
+      onChange(current.filter(v => v !== optValue));
+    } else {
+      onChange([...current, optValue]);
+    }
+  };
+
+  const selectedLabels = options
+    .filter(opt => {
+      const val = typeof opt === 'object' ? opt.value : opt;
+      return (Array.isArray(value) ? value : []).includes(val);
+    })
+    .map(opt => (typeof opt === 'object' ? opt.label : opt));
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', position: 'relative' }} className={className} ref={dropdownRef}>
+      {label && (
+        <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>
+          {label}
+        </label>
+      )}
+      <div
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        style={{
+          width: '100%',
+          padding: '8px 12px',
+          minHeight: '40px',
+          fontSize: '14px',
+          backgroundColor: disabled ? 'var(--bg-muted)' : 'var(--bg-card)',
+          color: 'var(--text-primary)',
+          border: '1px solid ' + (error ? 'var(--danger)' : 'var(--border-color)'),
+          borderRadius: 'var(--radius-md)',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '4px',
+          backgroundImage: 'url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns=''http://www.w3.org/2000/svg'' viewBox=''0 0 24 24'' fill=''none'' stroke=''%2364748b'' stroke-width=''2'' stroke-linecap=''round'' stroke-linejoin=''round''%3E%3Cpolyline points=''6 9 12 15 18 9''/%3E%3C/svg%3E")',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'right 12px center',
+          backgroundSize: '16px',
+          paddingRight: '36px',
+        }}
+      >
+        {selectedLabels.length > 0 ? (
+          selectedLabels.map((lbl, idx) => (
+            <span key={idx} style={{ backgroundColor: 'var(--primary-light)', color: 'var(--primary)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', whiteSpace: 'nowrap' }}>
+              {lbl}
+            </span>
+          ))
+        ) : (
+          <span style={{ color: 'var(--text-muted)' }}>Select options...</span>
+        )}
+      </div>
+      {isOpen && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          marginTop: '4px',
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          maxHeight: '200px',
+          overflowY: 'auto',
+          zIndex: 10,
+          padding: '4px'
+        }}>
+          {options.length > 0 ? options.map((opt, i) => {
+            const val = typeof opt === 'object' ? opt.value : opt;
+            const lbl = typeof opt === 'object' ? opt.label : opt;
+            const isChecked = (Array.isArray(value) ? value : []).includes(val);
+            return (
+              <div
+                key={i}
+                onClick={() => toggleOption(val)}
+                style={{
+                  padding: '8px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  backgroundColor: isChecked ? 'var(--primary-light)' : 'transparent',
+                }}
+                onMouseEnter={(e) => !isChecked && (e.currentTarget.style.backgroundColor = 'var(--bg-muted)')}
+                onMouseLeave={(e) => !isChecked && (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <input type="checkbox" checked={isChecked} readOnly style={{ accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                <span style={{ fontSize: '14px', color: isChecked ? 'var(--primary)' : 'var(--text-primary)', fontWeight: isChecked ? '600' : '400' }}>{lbl}</span>
+              </div>
+            );
+          }) : (
+            <div style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--text-muted)' }}>No options available</div>
+          )}
+        </div>
+      )}
+      {error && <span style={{ fontSize: '12px', color: 'var(--danger)', marginTop: '2px' }}>{error}</span>}
+    </div>
+  );
+};
