@@ -228,11 +228,11 @@ const CmsPreview = ({ products = [], categories = [], brands = [], recipes = [] 
                           <div key={promo.id || i} style={{ borderRadius: '16px', overflow: 'hidden', backgroundColor: bg, display: 'flex', height: '160px' }}>
                             <div style={{ flex: 1, padding: '18px 16px 18px 20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                               <div>
-                                {promo.label && (
+                                {promo.announcementText && (
                                   promo.labelPill ? (
-                                    <span style={{ display: 'inline-block', backgroundColor: '#ea580c', color: 'white', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', marginBottom: '8px', textTransform: 'uppercase' }}>{promo.label}</span>
+                                    <span style={{ display: 'inline-block', backgroundColor: '#ea580c', color: 'white', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '12px', marginBottom: '8px', textTransform: 'uppercase' }}>{promo.announcementText}</span>
                                   ) : (
-                                    <div style={{ fontSize: '10px', fontWeight: '700', color: promo.labelColor || '#f97316', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>{promo.label}</div>
+                                    <div style={{ fontSize: '10px', fontWeight: '700', color: promo.labelColor || '#f97316', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>{promo.announcementText}</div>
                                   )
                                 )}
                                 <div style={{ fontSize: '14px', fontWeight: '800', color: isDark ? 'white' : '#111827', lineHeight: 1.25 }}>{promo.title}</div>

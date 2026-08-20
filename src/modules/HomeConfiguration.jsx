@@ -107,10 +107,18 @@ const SECTION_CONFIG = {
   'Offer Banners': {
     label: 'Offer Banners',
     fields: [
-      { name: 'title', label: 'Title', type: 'text', required: true },
-      { name: 'bannerImage', label: 'Banner Image', type: 'image' },
-      { name: 'buttonText', label: 'Button Text', type: 'text' },
-      { name: 'buttonUrl', label: 'Button URL', type: 'text' },
+      { name: 'title', label: 'Section Title', type: 'text', required: true },
+      { name: 'items', label: 'Offers List', type: 'itemsList',
+        itemFields: [
+          { name: 'title', label: 'Title', type: 'text', required: true },
+          { name: 'announcementText', label: 'Announcement Text', type: 'text' },
+          { name: 'description', label: 'Description', type: 'textarea' },
+          { name: 'image', label: 'Banner Image', type: 'image' },
+          { name: 'buttonText', label: 'Button Text', type: 'text' },
+          { name: 'buttonUrl', label: 'Button URL', type: 'text' },
+          { name: 'bg', label: 'Background Color (Hex)', type: 'text' }
+        ]
+      }
     ]
   },
   'Subscription Banner': {
