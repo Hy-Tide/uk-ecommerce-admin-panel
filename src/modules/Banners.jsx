@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Edit, CheckCircle, XCircle, Grid, List as ListIcon, ImageIcon, ExternalLink, RefreshCw, Search } from 'lucide-react';
+import { Sparkles, Edit, CheckCircle, XCircle, Grid, List as ListIcon, ImageIcon, ExternalLink, RefreshCw, Search, Plus } from 'lucide-react';
 import Button from '../components/Button';
 import Drawer from '../components/Drawer';
 import Input, { Select, Textarea } from '../components/Input';
@@ -133,6 +133,19 @@ export const Banners = ({
     setDrawerOpen(true);
   };
 
+  const openAddDrawer = () => {
+    setEditingBanner(null);
+    setTitle('');
+    setDescription('');
+    setPageType('offers');
+    setLink('');
+    setIsActive(true);
+    setImageFile(null);
+    setImageUrlInput('');
+    setImagePreview('');
+    setDrawerOpen(true);
+  };
+
   const handleSaveBanner = async (e) => {
     e.preventDefault();
     if (!title.trim()) {
@@ -192,9 +205,7 @@ export const Banners = ({
       };
 
       if (res && res.success !== false) {
-        const saved = res.data?.banner || res.data || updatedObj;
-        const normalized = normalizeBanner(saved);
-        setBanners(banners.map(b => (b.pageType === pageType ? normalized : b)));
+        await loadBanners();
         if (addToast) addToast(res.message || (isMock ? 'Banner created successfully' : 'Banner updated successfully'), 'success');
 
         // Add to audit logs
@@ -247,9 +258,7 @@ export const Banners = ({
       }
 
       if (res && res.success !== false) {
-        const saved = res.data?.banner || res.data || { ...banner, is_active: updatedStatus };
-        const normalized = normalizeBanner(saved);
-        setBanners(banners.map(b => (b.pageType === banner.pageType ? normalized : b)));
+        await loadBanners();
         if (addToast) addToast(res.message || `Banner status set to ${updatedStatus ? 'Active' : 'Inactive'}`, 'info');
       } else {
         const errMsg = res?.message || res?.error || 'Failed to update banner status';
@@ -361,10 +370,15 @@ export const Banners = ({
             <Sparkles size={24} style={{ color: 'var(--primary)' }} /> Store Page Banners
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginTop: '4px', margin: 0 }}>
-            Configure and edit storefront page banners for Offers, Recipes, Blogs, and Contact Us. Banners cannot be deleted or created.
+            Configure and edit storefront page banners for Offers, Recipes, Blogs, and Contact Us. Max 4 banners allowed.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {banners.length < 4 && (
+            <Button variant="primary" size="sm" icon={Plus} onClick={openAddDrawer} title="Add New Banner">
+              Add Banner
+            </Button>
+          )}
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={loadBanners} loading={loading} title="Reload Data" />
           <ViewToggle currentView={viewMode} onViewChange={handleViewChange} />
         </div>
@@ -502,7 +516,7 @@ export const Banners = ({
       <Drawer
         isOpen={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={`Edit Banner: ${editingBanner?.title}`}
+        title={editingBanner ? `Edit Banner: ${editingBanner.title}` : 'Add New Banner'}
         footer={
           <div style={{ display: 'flex', gap: '10px' }}>
             <Button variant="outline" size="sm" onClick={() => setDrawerOpen(false)}>Cancel</Button>
@@ -515,10 +529,23 @@ export const Banners = ({
         <form onSubmit={handleSaveBanner} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Page Location (Read-Only)</label>
-            <div style={{ padding: '10px 12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-app)', textTransform: 'capitalize', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>
-              {pageType.replace('-', ' ')}
-            </div>
+            <label style={{ fontSize: '13px', fontWeight: '500', color: 'var(--text-secondary)' }}>Page Location *</label>
+            {!editingBanner ? (
+              <Select
+                value={pageType}
+                onChange={(e) => setPageType(e.target.value)}
+                options={[
+                  { value: 'offers', label: 'Offers' },
+                  { value: 'blogs', label: 'Blogs' },
+                  { value: 'recipes', label: 'Recipes' },
+                  { value: 'contact-us', label: 'Contact Us' }
+                ]}
+              />
+            ) : (
+              <div style={{ padding: '10px 12px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-app)', textTransform: 'capitalize', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)' }}>
+                {pageType.replace('-', ' ')}
+              </div>
+            )}
           </div>
 
           <Input
